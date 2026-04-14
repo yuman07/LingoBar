@@ -1,10 +1,10 @@
-import AVFoundation
+import Foundation
 
 @MainActor
 final class TTSService {
     static let shared = TTSService()
 
-    private let synthesizer = AVSpeechSynthesizer()
+    private var process: Process?
 
     private init() {}
 
@@ -12,18 +12,24 @@ final class TTSService {
         stop()
         guard !text.isEmpty else { return }
 
-        let utterance = AVSpeechUtterance(string: text)
-        if let code = language.ttsLanguageCode {
-            utterance.voice = AVSpeechSynthesisVoice(language: code)
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/say")
+
+        var args: [String] = []
+        if let voice = language.sayVoiceName {
+            args.append(contentsOf: ["-v", voice])
         }
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
-        utterance.volume = 1.0
-        synthesizer.speak(utterance)
+        args.append(text)
+        proc.arguments = args
+
+        process = proc
+        try? proc.run()
     }
 
     func stop() {
-        if synthesizer.isSpeaking {
-            synthesizer.stopSpeaking(at: .immediate)
+        if let process, process.isRunning {
+            process.terminate()
         }
+        process = nil
     }
 }
