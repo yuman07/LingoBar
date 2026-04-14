@@ -70,7 +70,7 @@ final class TranslationManager {
                 )
 
                 guard status == .installed else {
-                    appState.errorMessage = String(localized: "Language pack not installed. Please download it in System Settings → General → Language & Region → Translation Languages.")
+                    appState.errorMessage = "language_pack_not_installed"
                     appState.isTranslating = false
                     return
                 }

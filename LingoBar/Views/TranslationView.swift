@@ -97,9 +97,13 @@ struct TranslationView: View {
                                     Spacer()
                                 }
                             } else if let error = appState.errorMessage {
-                                Text(error)
-                                    .foregroundStyle(.red)
-                                    .font(.body)
+                                if error == "language_pack_not_installed" {
+                                    languagePackNotInstalledView
+                                } else {
+                                    Text(error)
+                                        .foregroundStyle(.red)
+                                        .font(.body)
+                                }
                             } else {
                                 Text(appState.outputText)
                                     .font(.body)
@@ -156,6 +160,19 @@ struct TranslationView: View {
 
     // MARK: - Components
 
+    private var languagePackNotInstalledView: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Language pack not installed.")
+                .font(.body)
+                .foregroundStyle(.secondary)
+            Button(action: openTranslationSettings) {
+                Text("Download in System Settings →")
+                    .font(.body)
+            }
+            .buttonStyle(.link)
+        }
+    }
+
     private var engineIndicator: some View {
         HStack(spacing: 3) {
             Image(systemName: appState.currentEngineType.iconName)
@@ -184,6 +201,12 @@ struct TranslationView: View {
         let oldInput = appState.inputText
         appState.inputText = appState.outputText
         appState.outputText = oldInput
+    }
+
+    private func openTranslationSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.Localization-Settings.extension") {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     private func copyInputText() {
