@@ -30,7 +30,18 @@ struct TranslationView: View {
             .padding(.top, 6)
             .padding(.bottom, 4)
 
-            Divider()
+            // MARK: - Swap Button
+            HStack {
+                Divider().frame(maxWidth: .infinity, maxHeight: 1)
+                Button(action: swapLanguages) {
+                    Image(systemName: "arrow.up.arrow.down")
+                        .font(.caption)
+                }
+                .buttonStyle(.borderless)
+                .help("Swap languages")
+                Divider().frame(maxWidth: .infinity, maxHeight: 1)
+            }
+            .frame(height: 20)
 
             // MARK: - Output Section
             VStack(alignment: .leading, spacing: 4) {
@@ -151,6 +162,24 @@ struct TranslationView: View {
     }
 
     // MARK: - Actions
+
+    private func swapLanguages() {
+        let oldSource = appState.sourceLanguage
+        let oldTarget = appState.targetLanguage
+
+        // Output language can't be Auto, so resolve it if input was Auto
+        let resolvedSource = oldSource == .auto
+            ? detectLanguage(appState.inputText)
+            : oldSource
+
+        appState.sourceLanguage = oldTarget
+        appState.targetLanguage = resolvedSource
+
+        // Swap text content too
+        let oldInput = appState.inputText
+        appState.inputText = appState.outputText
+        appState.outputText = oldInput
+    }
 
     private func copyInputText() {
         NSPasteboard.general.clearContents()
