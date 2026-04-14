@@ -350,6 +350,20 @@
           "stringUnit" : { "state" : "translated", "value" : "解析翻译结果失败。" }
         }
       }
+    },
+    "Unsupported language pair." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "不支持的语言对。" }
+        }
+      }
+    },
+    "Language pack not installed. Please download it in System Settings → General → Language & Region → Translation Languages." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "语言包未安装，请在系统设置 → 通用 → 语言与地区 → 翻译语言中下载。" }
+        }
+      }
     }
   },
   "version" : "1.0"

@@ -1,6 +1,7 @@
 import Foundation
 import NaturalLanguage
 import SwiftData
+import Translation
 
 @Observable
 @MainActor
@@ -54,6 +55,26 @@ final class TranslationManager {
                     selectedEngine: selectedEngine, appState: appState
                 )
             } else {
+                // Check if Apple Translation has the language pair installed
+                guard let sourceLang = detectedSource.localeLanguage,
+                      let targetLang = target.localeLanguage else {
+                    appState.errorMessage = String(localized: "Unsupported language pair.")
+                    appState.isTranslating = false
+                    return
+                }
+
+                let availability = LanguageAvailability()
+                let status = await availability.status(
+                    from: sourceLang,
+                    to: targetLang
+                )
+
+                guard status == .installed else {
+                    appState.errorMessage = String(localized: "Language pack not installed. Please download it in System Settings → General → Language & Region → Translation Languages.")
+                    appState.isTranslating = false
+                    return
+                }
+
                 appleEngine.triggerTranslation(text: text, from: detectedSource, to: target)
             }
         }
