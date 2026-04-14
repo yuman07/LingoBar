@@ -31,23 +31,14 @@ struct TranslationView: View {
                 .padding(.bottom, 8)
 
                 ZStack(alignment: .bottomTrailing) {
-                    TextEditor(text: $appState.inputText)
+                    TextField(String(localized: "Enter text"), text: $appState.inputText, axis: .vertical)
+                        .textFieldStyle(.plain)
                         .font(.body)
-                        .scrollContentBackground(.hidden)
-                        .padding(.horizontal, 8)
-                        .frame(minHeight: 40, maxHeight: 100)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(1...8)
+                        .padding(.horizontal, 12)
 
                     if !appState.inputText.isEmpty {
-                        Button(action: copyInputText) {
-                            Image(systemName: "doc.on.doc")
-                                .font(.system(size: 12))
-                                .foregroundStyle(.secondary)
-                                .padding(6)
-                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 5))
-                        }
-                        .buttonStyle(.borderless)
-                        .padding(6)
+                        copyButton(action: copyInputText)
                     }
                 }
             }
@@ -88,43 +79,37 @@ struct TranslationView: View {
                 .padding(.bottom, 8)
 
                 ZStack(alignment: .bottomTrailing) {
-                    ScrollView {
-                        Group {
-                            if appState.isTranslating {
-                                HStack {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                    Spacer()
-                                }
-                            } else if let error = appState.errorMessage {
-                                if error == "language_pack_not_installed" {
-                                    languagePackNotInstalledView
-                                } else {
-                                    Text(error)
-                                        .foregroundStyle(.red)
-                                        .font(.body)
-                                }
-                            } else {
-                                Text(appState.outputText)
-                                    .font(.body)
-                                    .textSelection(.enabled)
+                    Group {
+                        if appState.isTranslating {
+                            HStack {
+                                ProgressView()
+                                    .controlSize(.small)
+                                Spacer()
                             }
+                            .padding(.horizontal, 12)
+                        } else if let error = appState.errorMessage {
+                            if error == "language_pack_not_installed" {
+                                languagePackNotInstalledView
+                                    .padding(.horizontal, 12)
+                            } else {
+                                Text(error)
+                                    .foregroundStyle(.red)
+                                    .font(.body)
+                                    .padding(.horizontal, 12)
+                            }
+                        } else {
+                            Text(appState.outputText.isEmpty ? " " : appState.outputText)
+                                .font(.body)
+                                .foregroundStyle(appState.outputText.isEmpty ? .clear : .primary)
+                                .textSelection(.enabled)
+                                .lineLimit(1...8)
+                                .frame(maxWidth: .infinity, alignment: .topLeading)
+                                .padding(.horizontal, 12)
                         }
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
-                        .padding(.horizontal, 12)
                     }
-                    .frame(minHeight: 40)
 
                     if !appState.outputText.isEmpty {
-                        Button(action: copyOutputText) {
-                            Image(systemName: "doc.on.doc")
-                                .font(.system(size: 12))
-                                .foregroundStyle(.secondary)
-                                .padding(6)
-                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 5))
-                        }
-                        .buttonStyle(.borderless)
-                        .padding(6)
+                        copyButton(action: copyOutputText)
                     }
                 }
             }
@@ -171,6 +156,18 @@ struct TranslationView: View {
             }
             .buttonStyle(.link)
         }
+    }
+
+    private func copyButton(action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: "doc.on.doc")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .padding(6)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 5))
+        }
+        .buttonStyle(.borderless)
+        .padding(6)
     }
 
     private var engineIndicator: some View {
