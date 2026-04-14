@@ -12,3 +12,20 @@ credentials.json
 .claude/*
 !.claude/settings.json
 !.claude/CLAUDE.md
+
+# Xcode
+build/
+DerivedData/
+*.xcuserdata
+xcuserdata/
+*.xcworkspace
+!LingoBar.xcodeproj/project.xcworkspace/
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
