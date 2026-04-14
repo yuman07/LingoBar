@@ -11,7 +11,7 @@ struct TranslationView: View {
 
         VStack(spacing: 0) {
             // MARK: - Input Section
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     LanguagePicker(
                         label: "Source Language",
@@ -19,15 +19,38 @@ struct TranslationView: View {
                         languages: SupportedLanguage.sourceLanguages
                     )
                     Spacer()
-                    inputActionButtons
+                    Button(action: speakInputText) {
+                        Image(systemName: "speaker.wave.2")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(appState.inputText.isEmpty)
                 }
+                .padding(.horizontal, 12)
+                .padding(.top, 6)
+                .padding(.bottom, 8)
 
-                TextEditor(text: $appState.inputText)
-                    .font(.body)
-                    .scrollContentBackground(.hidden)
+                ZStack(alignment: .bottomTrailing) {
+                    TextEditor(text: $appState.inputText)
+                        .font(.body)
+                        .scrollContentBackground(.hidden)
+                        .padding(.horizontal, 8)
+                        .frame(minHeight: 40, maxHeight: 100)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if !appState.inputText.isEmpty {
+                        Button(action: copyInputText) {
+                            Image(systemName: "doc.on.doc")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.secondary)
+                                .padding(6)
+                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 5))
+                        }
+                        .buttonStyle(.borderless)
+                        .padding(6)
+                    }
+                }
             }
-            .padding(.horizontal, 12)
-            .padding(.top, 6)
             .padding(.bottom, 4)
 
             // MARK: - Swap Button
@@ -44,7 +67,7 @@ struct TranslationView: View {
             .frame(height: 20)
 
             // MARK: - Output Section
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     LanguagePicker(
                         label: "Target Language",
@@ -53,32 +76,54 @@ struct TranslationView: View {
                     )
                     Spacer()
                     engineIndicator
-                    outputActionButtons
-                }
-
-                ScrollView {
-                    Group {
-                        if appState.isTranslating {
-                            HStack {
-                                ProgressView()
-                                    .controlSize(.small)
-                                Spacer()
-                            }
-                        } else if let error = appState.errorMessage {
-                            Text(error)
-                                .foregroundStyle(.red)
-                                .font(.body)
-                        } else {
-                            Text(appState.outputText)
-                                .font(.body)
-                                .textSelection(.enabled)
-                        }
+                    Button(action: speakOutputText) {
+                        Image(systemName: "speaker.wave.2")
+                            .font(.caption)
                     }
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .buttonStyle(.borderless)
+                    .disabled(appState.outputText.isEmpty)
+                }
+                .padding(.horizontal, 12)
+                .padding(.top, 6)
+                .padding(.bottom, 8)
+
+                ZStack(alignment: .bottomTrailing) {
+                    ScrollView {
+                        Group {
+                            if appState.isTranslating {
+                                HStack {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                    Spacer()
+                                }
+                            } else if let error = appState.errorMessage {
+                                Text(error)
+                                    .foregroundStyle(.red)
+                                    .font(.body)
+                            } else {
+                                Text(appState.outputText)
+                                    .font(.body)
+                                    .textSelection(.enabled)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .padding(.horizontal, 12)
+                    }
+                    .frame(minHeight: 40)
+
+                    if !appState.outputText.isEmpty {
+                        Button(action: copyOutputText) {
+                            Image(systemName: "doc.on.doc")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.secondary)
+                                .padding(6)
+                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 5))
+                        }
+                        .buttonStyle(.borderless)
+                        .padding(6)
+                    }
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.top, 6)
             .padding(.bottom, 4)
         }
         .onChange(of: appState.inputText) {
@@ -123,51 +168,12 @@ struct TranslationView: View {
         .background(.quaternary, in: Capsule())
     }
 
-    private var inputActionButtons: some View {
-        HStack(spacing: 2) {
-            Button(action: copyInputText) {
-                Image(systemName: "doc.on.doc")
-            }
-            .buttonStyle(.borderless)
-            .help("Copy")
-            .disabled(appState.inputText.isEmpty)
-
-            Button(action: speakInputText) {
-                Image(systemName: "speaker.wave.2")
-            }
-            .buttonStyle(.borderless)
-            .help("Listen")
-            .disabled(appState.inputText.isEmpty)
-        }
-        .font(.caption)
-    }
-
-    private var outputActionButtons: some View {
-        HStack(spacing: 2) {
-            Button(action: copyOutputText) {
-                Image(systemName: "doc.on.doc")
-            }
-            .buttonStyle(.borderless)
-            .help("Copy")
-            .disabled(appState.outputText.isEmpty)
-
-            Button(action: speakOutputText) {
-                Image(systemName: "speaker.wave.2")
-            }
-            .buttonStyle(.borderless)
-            .help("Listen")
-            .disabled(appState.outputText.isEmpty)
-        }
-        .font(.caption)
-    }
-
     // MARK: - Actions
 
     private func swapLanguages() {
         let oldSource = appState.sourceLanguage
         let oldTarget = appState.targetLanguage
 
-        // Output language can't be Auto, so resolve it if input was Auto
         let resolvedSource = oldSource == .auto
             ? detectLanguage(appState.inputText)
             : oldSource
@@ -175,7 +181,6 @@ struct TranslationView: View {
         appState.sourceLanguage = oldTarget
         appState.targetLanguage = resolvedSource
 
-        // Swap text content too
         let oldInput = appState.inputText
         appState.inputText = appState.outputText
         appState.outputText = oldInput
@@ -201,14 +206,14 @@ struct TranslationView: View {
         TTSService.shared.speak(text: appState.inputText, language: language)
     }
 
+    private func speakOutputText() {
+        TTSService.shared.speak(text: appState.outputText, language: appState.targetLanguage)
+    }
+
     private func detectLanguage(_ text: String) -> SupportedLanguage {
         let recognizer = NLLanguageRecognizer()
         recognizer.processString(text)
         guard let dominant = recognizer.dominantLanguage else { return .english }
         return SupportedLanguage.from(nlLanguageCode: dominant.rawValue)
-    }
-
-    private func speakOutputText() {
-        TTSService.shared.speak(text: appState.outputText, language: appState.targetLanguage)
     }
 }
