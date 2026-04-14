@@ -1,11 +1,13 @@
 import Foundation
 import NaturalLanguage
+import SwiftData
 
 @Observable
 @MainActor
 final class TranslationManager {
     let appleEngine = AppleTranslationEngine()
     private var debounceTask: Task<Void, Never>?
+    private let historyLimit = 500
 
     func translateWithDebounce(appState: AppState) {
         debounceTask?.cancel()
@@ -41,6 +43,45 @@ final class TranslationManager {
         appState.currentEngineType = .apple
         appState.isTranslating = false
         appState.errorMessage = nil
+
+        saveHistoryRecord(
+            sourceText: appState.inputText.trimmingCharacters(in: .whitespacesAndNewlines),
+            targetText: response,
+            sourceLanguage: detectedSource ?? appState.sourceLanguage,
+            targetLanguage: appState.targetLanguage,
+            engineType: .apple
+        )
+    }
+
+    private func saveHistoryRecord(
+        sourceText: String,
+        targetText: String,
+        sourceLanguage: SupportedLanguage,
+        targetLanguage: SupportedLanguage,
+        engineType: TranslationEngineType
+    ) {
+        guard let container = SharedEnvironment.shared.modelContainer else { return }
+        let context = container.mainContext
+
+        let record = TranslationRecord(
+            sourceText: sourceText,
+            targetText: targetText,
+            sourceLanguage: sourceLanguage,
+            targetLanguage: targetLanguage,
+            engineType: engineType
+        )
+        context.insert(record)
+
+        // Enforce record limit
+        let descriptor = FetchDescriptor<TranslationRecord>(
+            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+        )
+        if let allRecords = try? context.fetch(descriptor),
+           allRecords.count > historyLimit {
+            for record in allRecords.suffix(from: historyLimit) {
+                context.delete(record)
+            }
+        }
     }
 
     func handleTranslationError(_ error: any Error, appState: AppState) {

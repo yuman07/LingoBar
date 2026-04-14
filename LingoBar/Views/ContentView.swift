@@ -24,9 +24,7 @@ struct ContentView: View {
             case .translate:
                 TranslationView()
             case .history:
-                Text("History")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .foregroundStyle(.secondary)
+                HistoryView()
             }
         }
         .frame(width: 400, height: 500)

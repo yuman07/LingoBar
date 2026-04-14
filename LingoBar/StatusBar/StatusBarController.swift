@@ -37,6 +37,7 @@ final class StatusBarController {
             .environment(SharedEnvironment.shared.appState!)
             .environment(SharedEnvironment.shared.translationManager!)
             .environment(SharedEnvironment.shared.appSettings!)
+            .modelContainer(SharedEnvironment.shared.modelContainer!)
     }
 
     private func setupPopover() {
