@@ -129,4 +129,30 @@ enum SupportedLanguage: String, CaseIterable, Codable, Sendable, Identifiable {
     var isChinese: Bool {
         self == .simplifiedChinese || self == .traditionalChinese
     }
+
+    var ttsLanguageCode: String? {
+        switch self {
+        case .auto: nil
+        case .english: "en-US"
+        case .simplifiedChinese: "zh-CN"
+        case .traditionalChinese: "zh-TW"
+        case .japanese: "ja-JP"
+        case .korean: "ko-KR"
+        case .french: "fr-FR"
+        case .german: "de-DE"
+        case .spanish: "es-ES"
+        case .portuguese: "pt-BR"
+        case .italian: "it-IT"
+        case .russian: "ru-RU"
+        case .arabic: "ar-SA"
+        case .hindi: "hi-IN"
+        case .thai: "th-TH"
+        case .vietnamese: "vi-VN"
+        case .indonesian: "id-ID"
+        case .turkish: "tr-TR"
+        case .polish: "pl-PL"
+        case .dutch: "nl-NL"
+        case .ukrainian: "uk-UA"
+        }
+    }
 }
