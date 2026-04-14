@@ -1,3 +1,4 @@
+import NaturalLanguage
 import SwiftUI
 @preconcurrency import Translation
 
@@ -162,8 +163,20 @@ struct TranslationView: View {
     }
 
     private func speakInputText() {
-        let language = appState.sourceLanguage == .auto ? .english : appState.sourceLanguage
+        let language: SupportedLanguage
+        if appState.sourceLanguage == .auto {
+            language = detectLanguage(appState.inputText)
+        } else {
+            language = appState.sourceLanguage
+        }
         TTSService.shared.speak(text: appState.inputText, language: language)
+    }
+
+    private func detectLanguage(_ text: String) -> SupportedLanguage {
+        let recognizer = NLLanguageRecognizer()
+        recognizer.processString(text)
+        guard let dominant = recognizer.dominantLanguage else { return .english }
+        return SupportedLanguage.from(nlLanguageCode: dominant.rawValue)
     }
 
     private func speakOutputText() {
