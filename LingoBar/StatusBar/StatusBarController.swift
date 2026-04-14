@@ -27,7 +27,11 @@ final class StatusBarController {
         popover.contentSize = NSSize(width: 400, height: 500)
         popover.behavior = .transient
         popover.animates = true
-        popover.contentViewController = NSHostingController(rootView: ContentView())
+
+        let contentView = ContentView()
+            .environment(SharedEnvironment.shared.appState!)
+            .environment(SharedEnvironment.shared.translationManager!)
+        popover.contentViewController = NSHostingController(rootView: contentView)
     }
 
     // MARK: - Actions
