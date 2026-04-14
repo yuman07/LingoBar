@@ -10,7 +10,7 @@ struct TranslationView: View {
 
         VStack(spacing: 0) {
             // MARK: - Input Section
-            VStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     LanguagePicker(
                         label: "Source Language",
@@ -20,21 +20,19 @@ struct TranslationView: View {
                     Spacer()
                     inputActionButtons
                 }
-                .padding(.horizontal, 12)
-                .padding(.top, 8)
 
                 TextEditor(text: $appState.inputText)
                     .font(.body)
                     .scrollContentBackground(.hidden)
-                    .padding(.horizontal, 8)
-                    .frame(minHeight: 80)
             }
-            .frame(maxHeight: .infinity)
+            .padding(.horizontal, 12)
+            .padding(.top, 6)
+            .padding(.bottom, 4)
 
             Divider()
 
             // MARK: - Output Section
-            VStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     LanguagePicker(
                         label: "Target Language",
@@ -45,32 +43,31 @@ struct TranslationView: View {
                     engineIndicator
                     outputActionButtons
                 }
-                .padding(.horizontal, 12)
-                .padding(.top, 8)
 
-                ZStack(alignment: .topLeading) {
-                    if appState.isTranslating {
-                        ProgressView()
-                            .controlSize(.small)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else if let error = appState.errorMessage {
-                        Text(error)
-                            .foregroundStyle(.secondary)
-                            .font(.body)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                    } else {
-                        Text(appState.outputText)
-                            .font(.body)
-                            .textSelection(.enabled)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                ScrollView {
+                    Group {
+                        if appState.isTranslating {
+                            HStack {
+                                ProgressView()
+                                    .controlSize(.small)
+                                Spacer()
+                            }
+                        } else if let error = appState.errorMessage {
+                            Text(error)
+                                .foregroundStyle(.red)
+                                .font(.body)
+                        } else {
+                            Text(appState.outputText)
+                                .font(.body)
+                                .textSelection(.enabled)
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
-                .frame(maxHeight: .infinity)
             }
-            .frame(maxHeight: .infinity)
+            .padding(.horizontal, 12)
+            .padding(.top, 6)
+            .padding(.bottom, 4)
         }
         .onChange(of: appState.inputText) {
             translationManager.translateWithDebounce(appState: appState)
@@ -103,12 +100,11 @@ struct TranslationView: View {
     // MARK: - Components
 
     private var engineIndicator: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 3) {
             Image(systemName: appState.currentEngineType.iconName)
-                .font(.caption2)
             Text(appState.currentEngineType.displayName)
-                .font(.caption2)
         }
+        .font(.caption2)
         .foregroundStyle(.secondary)
         .padding(.horizontal, 6)
         .padding(.vertical, 2)
@@ -116,7 +112,7 @@ struct TranslationView: View {
     }
 
     private var inputActionButtons: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 2) {
             Button(action: copyInputText) {
                 Image(systemName: "doc.on.doc")
             }
@@ -131,10 +127,11 @@ struct TranslationView: View {
             .help("Listen")
             .disabled(appState.inputText.isEmpty)
         }
+        .font(.caption)
     }
 
     private var outputActionButtons: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 2) {
             Button(action: copyOutputText) {
                 Image(systemName: "doc.on.doc")
             }
@@ -149,6 +146,7 @@ struct TranslationView: View {
             .help("Listen")
             .disabled(appState.outputText.isEmpty)
         }
+        .font(.caption)
     }
 
     // MARK: - Actions
@@ -169,7 +167,6 @@ struct TranslationView: View {
     }
 
     private func speakOutputText() {
-        let language = appState.targetLanguage == .auto ? .english : appState.targetLanguage
-        TTSService.shared.speak(text: appState.outputText, language: language)
+        TTSService.shared.speak(text: appState.outputText, language: appState.targetLanguage)
     }
 }

@@ -5,7 +5,7 @@ import SwiftUI
 final class TranslationPanel: NSPanel {
     init(contentView: some View) {
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 360, height: 380),
+            contentRect: NSRect(x: 0, y: 0, width: 340, height: 320),
             styleMask: [.nonactivatingPanel, .titled, .closable, .fullSizeContentView],
             backing: .buffered,
             defer: false

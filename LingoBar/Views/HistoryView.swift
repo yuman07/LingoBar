@@ -48,17 +48,28 @@ struct HistoryView: View {
                 }
                 .frame(maxHeight: .infinity)
             } else {
-                List {
-                    ForEach(filteredRecords) { record in
-                        HistoryRow(record: record)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                fillFromRecord(record)
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(filteredRecords) { record in
+                            HistoryRow(record: record)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    fillFromRecord(record)
+                                }
+                                .contextMenu {
+                                    Button(String(localized: "Delete"), role: .destructive) {
+                                        modelContext.delete(record)
+                                    }
+                                }
+
+                            if record.id != filteredRecords.last?.id {
+                                Divider().padding(.leading, 12)
                             }
+                        }
                     }
-                    .onDelete(perform: deleteRecords)
                 }
-                .listStyle(.plain)
             }
 
             Divider()
