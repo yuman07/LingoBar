@@ -114,6 +114,8 @@ struct TranslationView: View {
                 }
             }
             .padding(.bottom, 4)
+
+            Spacer(minLength: 0)
         }
         .onChange(of: appState.inputText) {
             translationManager.translateWithDebounce(appState: appState)
