@@ -6,8 +6,16 @@ import SwiftData
 @MainActor
 final class TranslationManager {
     let appleEngine = AppleTranslationEngine()
+    private let thirdPartyEngines: [TranslationEngineType: any TranslationEngineProtocol] = [
+        .google: GoogleTranslationEngine(),
+        .microsoft: MicrosoftTranslationEngine(),
+        .baidu: BaiduTranslationEngine(),
+        .youdao: YoudaoTranslationEngine(),
+    ]
     private var debounceTask: Task<Void, Never>?
     private let historyLimit = 500
+
+    private var settings: AppSettings { SharedEnvironment.shared.appSettings! }
 
     func translateWithDebounce(appState: AppState) {
         debounceTask?.cancel()
@@ -34,8 +42,65 @@ final class TranslationManager {
                 text: text
             )
 
-            appleEngine.triggerTranslation(text: text, from: source, to: target)
+            let selectedEngine = settings.selectedEngine
+
+            // Third-party engine path
+            if selectedEngine != .apple {
+                await translateWithThirdParty(
+                    text: text, source: source, target: target,
+                    selectedEngine: selectedEngine, appState: appState
+                )
+            } else {
+                // Apple Translation path (via .translationTask modifier)
+                appleEngine.triggerTranslation(text: text, from: source, to: target)
+            }
         }
+    }
+
+    private func translateWithThirdParty(
+        text: String,
+        source: SupportedLanguage,
+        target: SupportedLanguage,
+        selectedEngine: TranslationEngineType,
+        appState: AppState
+    ) async {
+        // Build failover chain: selected engine first, then others, Apple as fallback
+        var engineOrder: [TranslationEngineType] = [selectedEngine]
+        if settings.failoverEnabled {
+            for engineType in TranslationEngineType.allCases where engineType != selectedEngine && engineType != .apple {
+                if thirdPartyEngines[engineType] != nil {
+                    engineOrder.append(engineType)
+                }
+            }
+        }
+
+        for engineType in engineOrder {
+            guard !Task.isCancelled else { return }
+            guard let engine = thirdPartyEngines[engineType] else { continue }
+
+            do {
+                let result = try await engine.translate(text: text, from: source, to: target)
+                guard !Task.isCancelled else { return }
+                appState.outputText = result.translatedText
+                appState.currentEngineType = result.engineType
+                appState.isTranslating = false
+                appState.errorMessage = nil
+                saveHistoryRecord(
+                    sourceText: text,
+                    targetText: result.translatedText,
+                    sourceLanguage: result.detectedSourceLanguage ?? source,
+                    targetLanguage: target,
+                    engineType: result.engineType
+                )
+                return
+            } catch {
+                continue
+            }
+        }
+
+        // Final fallback: Apple Translation
+        guard !Task.isCancelled else { return }
+        appleEngine.triggerTranslation(text: text, from: source, to: target)
     }
 
     func handleTranslationResult(response: String, detectedSource: SupportedLanguage?, appState: AppState) {
@@ -52,6 +117,19 @@ final class TranslationManager {
             engineType: .apple
         )
     }
+
+    func handleTranslationError(_ error: any Error, appState: AppState) {
+        appState.outputText = ""
+        appState.errorMessage = error.localizedDescription
+        appState.isTranslating = false
+    }
+
+    func cancelTranslation() {
+        debounceTask?.cancel()
+        debounceTask = nil
+    }
+
+    // MARK: - History
 
     private func saveHistoryRecord(
         sourceText: String,
@@ -72,7 +150,6 @@ final class TranslationManager {
         )
         context.insert(record)
 
-        // Enforce record limit
         let descriptor = FetchDescriptor<TranslationRecord>(
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
@@ -84,16 +161,7 @@ final class TranslationManager {
         }
     }
 
-    func handleTranslationError(_ error: any Error, appState: AppState) {
-        appState.outputText = ""
-        appState.errorMessage = error.localizedDescription
-        appState.isTranslating = false
-    }
-
-    func cancelTranslation() {
-        debounceTask?.cancel()
-        debounceTask = nil
-    }
+    // MARK: - Language Resolution
 
     private func resolveTargetLanguage(
         source: SupportedLanguage,

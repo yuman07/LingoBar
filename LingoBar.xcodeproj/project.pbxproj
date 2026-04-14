@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0EFCDDA2BB6FCADEEA20F0C7 /* GoogleTranslationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A4AB511711FCAE808F40CE2 /* GoogleTranslationEngine.swift */; };
 		22F21DC20CE4BC72D001AC36 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E5537D336DEEC1B936D96B3 /* SettingsView.swift */; };
 		28C3410287B81DBFA72435D1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0150D98D6B12EB86FB0410CB /* Assets.xcassets */; };
 		2BFE506EC0C5EC6DE7D4F141 /* TTSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F09A0C8C82FB162A76693446 /* TTSService.swift */; };
@@ -14,6 +15,7 @@
 		3A08D0A58805DEA0C8309A0B /* TranslationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95C5D1E44701F1BEA5B40DD3 /* TranslationView.swift */; };
 		4AD45CE2FD8CD4FC171FF397 /* LanguagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91BCA0A029DAB6CCF713644D /* LanguagePicker.swift */; };
 		51B46F098A5533A3A9810943 /* TranslationPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F4ABA7430BBBB3FD262D981 /* TranslationPanel.swift */; };
+		5E32D230DCE25497716DC3C7 /* YoudaoTranslationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41D1BB67F0D11D35727D078F /* YoudaoTranslationEngine.swift */; };
 		6275FBE80F35FAD1545D2E53 /* AppleTranslationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92375AEE639DC4A151AF8B1C /* AppleTranslationEngine.swift */; };
 		6F4895C88AEEE1BF108AF72A /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 0E6228D995BD0B8EE7EE8080 /* Sparkle */; };
 		7549869EFC93129DE856E9BC /* TranslationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C83635AFD914DC00A671E2DB /* TranslationManager.swift */; };
@@ -22,7 +24,9 @@
 		830718572CC720CB2968C055 /* TranslationEngineProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94010C6E2A6AD2DBED122DA2 /* TranslationEngineProtocol.swift */; };
 		8E020B725A5546F1B32EA20E /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 716777C20879DAC936BBE255 /* KeyboardShortcuts */; };
 		95C5F7560B6F4C313474E68A /* TranslationRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A64AABB61630466EC570E5 /* TranslationRecord.swift */; };
+		A2892A7594292C3C4CFD6546 /* BaiduTranslationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F5FC4CBE7C3B6A357F5DAB6 /* BaiduTranslationEngine.swift */; };
 		AFFB0EFDF9B68286229EB857 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB8355911F9853DA35945A50 /* HistoryView.swift */; };
+		B539EA47FDE470A1EC0E1D43 /* MicrosoftTranslationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED17DD3DDCCBA6B7DC159114 /* MicrosoftTranslationEngine.swift */; };
 		D36764E81560BF9C0968BF14 /* SupportedLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAC9720D2BE50110A642324E /* SupportedLanguage.swift */; };
 		D9ED0C6A58CD895CD0D7DDF6 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94F6991EFB9E9619C3697198 /* AppState.swift */; };
 		E7B12DDA91E97DA6063B5308 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8245025723E10B60B6CA8B5F /* AppSettings.swift */; };
@@ -36,10 +40,13 @@
 		1E5537D336DEEC1B936D96B3 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		268671A9A5C1820482BBD827 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
 		3BB0E11B08247F4CCEF59B00 /* LingoBar.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LingoBar.entitlements; sourceTree = "<group>"; };
+		41D1BB67F0D11D35727D078F /* YoudaoTranslationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YoudaoTranslationEngine.swift; sourceTree = "<group>"; };
 		472032D3ADEF940B8C36124B /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		6F4ABA7430BBBB3FD262D981 /* TranslationPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationPanel.swift; sourceTree = "<group>"; };
+		6F5FC4CBE7C3B6A357F5DAB6 /* BaiduTranslationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaiduTranslationEngine.swift; sourceTree = "<group>"; };
 		7093686D2D85FC4B0B9835B8 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		79C8E094A76B63C6091A3590 /* KeyboardShortcutNames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutNames.swift; sourceTree = "<group>"; };
+		7A4AB511711FCAE808F40CE2 /* GoogleTranslationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleTranslationEngine.swift; sourceTree = "<group>"; };
 		8245025723E10B60B6CA8B5F /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		86CCE34FE28599C8F673221A /* LingoBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LingoBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8CC65F4B4D435E4F84054B84 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -53,6 +60,7 @@
 		E13DE44F429E74AE2958C5AB /* LingoBarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LingoBarApp.swift; sourceTree = "<group>"; };
 		EAC9720D2BE50110A642324E /* SupportedLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportedLanguage.swift; sourceTree = "<group>"; };
 		EB8355911F9853DA35945A50 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		ED17DD3DDCCBA6B7DC159114 /* MicrosoftTranslationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicrosoftTranslationEngine.swift; sourceTree = "<group>"; };
 		F09A0C8C82FB162A76693446 /* TTSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSService.swift; sourceTree = "<group>"; };
 		F22C17A40FD84A539D800FF2 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -93,10 +101,14 @@
 			isa = PBXGroup;
 			children = (
 				92375AEE639DC4A151AF8B1C /* AppleTranslationEngine.swift */,
+				6F5FC4CBE7C3B6A357F5DAB6 /* BaiduTranslationEngine.swift */,
+				7A4AB511711FCAE808F40CE2 /* GoogleTranslationEngine.swift */,
 				268671A9A5C1820482BBD827 /* KeychainService.swift */,
+				ED17DD3DDCCBA6B7DC159114 /* MicrosoftTranslationEngine.swift */,
 				94010C6E2A6AD2DBED122DA2 /* TranslationEngineProtocol.swift */,
 				C83635AFD914DC00A671E2DB /* TranslationManager.swift */,
 				F09A0C8C82FB162A76693446 /* TTSService.swift */,
+				41D1BB67F0D11D35727D078F /* YoudaoTranslationEngine.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -233,12 +245,15 @@
 				E7B12DDA91E97DA6063B5308 /* AppSettings.swift in Sources */,
 				D9ED0C6A58CD895CD0D7DDF6 /* AppState.swift in Sources */,
 				6275FBE80F35FAD1545D2E53 /* AppleTranslationEngine.swift in Sources */,
+				A2892A7594292C3C4CFD6546 /* BaiduTranslationEngine.swift in Sources */,
 				F79A608FB3E8FC4B3EAAFF08 /* ContentView.swift in Sources */,
+				0EFCDDA2BB6FCADEEA20F0C7 /* GoogleTranslationEngine.swift in Sources */,
 				AFFB0EFDF9B68286229EB857 /* HistoryView.swift in Sources */,
 				35B385153EA954CB677174EA /* KeyboardShortcutNames.swift in Sources */,
 				F15A75DD99DB94EDEFF6E401 /* KeychainService.swift in Sources */,
 				4AD45CE2FD8CD4FC171FF397 /* LanguagePicker.swift in Sources */,
 				7E6D8211640D60AFFC114E53 /* LingoBarApp.swift in Sources */,
+				B539EA47FDE470A1EC0E1D43 /* MicrosoftTranslationEngine.swift in Sources */,
 				22F21DC20CE4BC72D001AC36 /* SettingsView.swift in Sources */,
 				80C8B5D6E2DD4F2F6ABAC7F3 /* StatusBarController.swift in Sources */,
 				D36764E81560BF9C0968BF14 /* SupportedLanguage.swift in Sources */,
@@ -248,6 +263,7 @@
 				51B46F098A5533A3A9810943 /* TranslationPanel.swift in Sources */,
 				95C5F7560B6F4C313474E68A /* TranslationRecord.swift in Sources */,
 				3A08D0A58805DEA0C8309A0B /* TranslationView.swift in Sources */,
+				5E32D230DCE25497716DC3C7 /* YoudaoTranslationEngine.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
