@@ -113,7 +113,7 @@ enum SupportedLanguage: String, CaseIterable, Codable, Sendable, Identifiable {
     }
 
     static var targetLanguages: [SupportedLanguage] {
-        allCases
+        allCases.filter { $0 != .auto }
     }
 
     static func from(nlLanguageCode code: String) -> SupportedLanguage {

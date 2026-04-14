@@ -10,8 +10,7 @@ struct LingoBarApp: App {
 
     var body: some Scene {
         Settings {
-            SettingsView()
-                .environment(SharedEnvironment.shared.appSettings!)
+            EmptyView()
         }
     }
 

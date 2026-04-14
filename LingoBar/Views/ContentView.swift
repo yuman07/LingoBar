@@ -27,7 +27,7 @@ struct ContentView: View {
                 HistoryView()
             }
         }
-        .frame(width: 400, height: 500)
+        .frame(width: 360, height: 380)
     }
 
     private func tabButton(title: String, tab: AppState.Tab) -> some View {

@@ -7,6 +7,7 @@ final class StatusBarController {
     private var statusItem: NSStatusItem?
     private let popover = NSPopover()
     private var panel: TranslationPanel?
+    private var settingsWindow: NSWindow?
     private var retentionTask: Task<Void, Never>?
     private var popoverDelegate: PopoverDelegate?
 
@@ -41,7 +42,7 @@ final class StatusBarController {
     }
 
     private func setupPopover() {
-        popover.contentSize = NSSize(width: 400, height: 500)
+        popover.contentSize = NSSize(width: 360, height: 380)
         popover.behavior = .transient
         popover.animates = true
         popover.contentViewController = NSHostingController(rootView: makeContentView())
@@ -152,8 +153,29 @@ final class StatusBarController {
     // MARK: - Menu Actions
 
     @objc private func openSettings() {
+        if let settingsWindow, settingsWindow.isVisible {
+            settingsWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let settingsView = SettingsView()
+            .environment(SharedEnvironment.shared.appSettings!)
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 450, height: 300),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = String(localized: "LingoBar Settings")
+        window.contentViewController = NSHostingController(rootView: settingsView)
+        window.center()
+        window.isReleasedWhenClosed = false
+        window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+
+        settingsWindow = window
     }
 
     @objc private func checkForUpdates() {

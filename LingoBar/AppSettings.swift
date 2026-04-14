@@ -37,7 +37,7 @@ final class AppSettings {
     }
 
     var targetLanguage: SupportedLanguage {
-        get { SupportedLanguage(rawValue: defaults.string(forKey: "targetLanguage") ?? "") ?? .auto }
+        get { SupportedLanguage(rawValue: defaults.string(forKey: "targetLanguage") ?? "") ?? .english }
         set { defaults.set(newValue.rawValue, forKey: "targetLanguage") }
     }
 

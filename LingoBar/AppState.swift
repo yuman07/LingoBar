@@ -8,7 +8,7 @@ final class AppState {
     var isTranslating: Bool = false
     var errorMessage: String?
     var sourceLanguage: SupportedLanguage = .auto
-    var targetLanguage: SupportedLanguage = .auto
+    var targetLanguage: SupportedLanguage = .english
     var activeTab: Tab = .translate
     var currentEngineType: TranslationEngineType = .apple
 
