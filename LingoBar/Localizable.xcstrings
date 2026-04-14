@@ -1,0 +1,356 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Auto" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "自动" }
+        }
+      }
+    },
+    "English" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "英语" }
+        }
+      }
+    },
+    "Chinese (Simplified)" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "简体中文" }
+        }
+      }
+    },
+    "Chinese (Traditional)" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "繁体中文" }
+        }
+      }
+    },
+    "Japanese" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "日语" }
+        }
+      }
+    },
+    "Korean" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "韩语" }
+        }
+      }
+    },
+    "French" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "法语" }
+        }
+      }
+    },
+    "German" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "德语" }
+        }
+      }
+    },
+    "Spanish" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "西班牙语" }
+        }
+      }
+    },
+    "Portuguese" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "葡萄牙语" }
+        }
+      }
+    },
+    "Italian" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "意大利语" }
+        }
+      }
+    },
+    "Russian" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "俄语" }
+        }
+      }
+    },
+    "Arabic" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "阿拉伯语" }
+        }
+      }
+    },
+    "Hindi" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "印地语" }
+        }
+      }
+    },
+    "Thai" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "泰语" }
+        }
+      }
+    },
+    "Vietnamese" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "越南语" }
+        }
+      }
+    },
+    "Indonesian" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "印尼语" }
+        }
+      }
+    },
+    "Turkish" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "土耳其语" }
+        }
+      }
+    },
+    "Polish" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "波兰语" }
+        }
+      }
+    },
+    "Dutch" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "荷兰语" }
+        }
+      }
+    },
+    "Ukrainian" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "乌克兰语" }
+        }
+      }
+    },
+    "Translate" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "翻译" }
+        }
+      }
+    },
+    "History" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "历史" }
+        }
+      }
+    },
+    "Search history…" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "搜索历史…" }
+        }
+      }
+    },
+    "No History" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "暂无历史记录" }
+        }
+      }
+    },
+    "No Results" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "无搜索结果" }
+        }
+      }
+    },
+    "Clear All" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "清空全部" }
+        }
+      }
+    },
+    "Settings…" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "设置…" }
+        }
+      }
+    },
+    "Check for Updates…" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "检查更新…" }
+        }
+      }
+    },
+    "About LingoBar" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "关于 LingoBar" }
+        }
+      }
+    },
+    "Quit LingoBar" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "退出 LingoBar" }
+        }
+      }
+    },
+    "General" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "通用" }
+        }
+      }
+    },
+    "Shortcut" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "快捷键" }
+        }
+      }
+    },
+    "Advanced" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "高级" }
+        }
+      }
+    },
+    "API Keys" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "API 密钥" }
+        }
+      }
+    },
+    "Translation Engine" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "翻译引擎" }
+        }
+      }
+    },
+    "Appearance" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "外观" }
+        }
+      }
+    },
+    "Launch at Login" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "登录时启动" }
+        }
+      }
+    },
+    "Toggle Translator" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "切换翻译窗口" }
+        }
+      }
+    },
+    "Content Retention" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "内容保留时间" }
+        }
+      }
+    },
+    "Clear immediately" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "立即清空" }
+        }
+      }
+    },
+    "Auto-switch engine on failure" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "引擎失败时自动切换" }
+        }
+      }
+    },
+    "System" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "跟随系统" }
+        }
+      }
+    },
+    "Light" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "浅色" }
+        }
+      }
+    },
+    "Dark" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "深色" }
+        }
+      }
+    },
+    "API Key not configured. Please check Settings." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "未配置 API Key，请在设置中配置。" }
+        }
+      }
+    },
+    "API Key is invalid. Please check Settings." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "API Key 无效，请检查设置。" }
+        }
+      }
+    },
+    "API quota exhausted." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "API 调用次数已达上限。" }
+        }
+      }
+    },
+    "Network error. Please check your connection." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "网络错误，请检查网络连接。" }
+        }
+      }
+    },
+    "Failed to parse translation response." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "解析翻译结果失败。" }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

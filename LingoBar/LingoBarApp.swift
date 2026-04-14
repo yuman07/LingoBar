@@ -1,10 +1,12 @@
 import AppKit
+import Sparkle
 import SwiftData
 import SwiftUI
 
 @main
 struct LingoBarApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    private let updaterController: SPUStandardUpdaterController
 
     var body: some Scene {
         Settings {
@@ -21,10 +23,17 @@ struct LingoBarApp: App {
         let container = try! ModelContainer(for: TranslationRecord.self)
         settings.loadSavedLanguages(into: state)
 
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
+
         SharedEnvironment.shared.appState = state
         SharedEnvironment.shared.translationManager = manager
         SharedEnvironment.shared.appSettings = settings
         SharedEnvironment.shared.modelContainer = container
+        SharedEnvironment.shared.updaterController = updaterController
 
         applyAppearance(settings.appearanceMode)
     }
@@ -37,6 +46,7 @@ final class SharedEnvironment {
     var translationManager: TranslationManager?
     var appSettings: AppSettings?
     var modelContainer: ModelContainer?
+    var updaterController: SPUStandardUpdaterController?
     private init() {}
 }
 

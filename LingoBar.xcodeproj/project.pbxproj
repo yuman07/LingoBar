@@ -29,6 +29,7 @@
 		B539EA47FDE470A1EC0E1D43 /* MicrosoftTranslationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED17DD3DDCCBA6B7DC159114 /* MicrosoftTranslationEngine.swift */; };
 		D36764E81560BF9C0968BF14 /* SupportedLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAC9720D2BE50110A642324E /* SupportedLanguage.swift */; };
 		D9ED0C6A58CD895CD0D7DDF6 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94F6991EFB9E9619C3697198 /* AppState.swift */; };
+		E5C44DB8A0987090168DD647 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F05BF58AC8CE030FE0D6DF21 /* Localizable.xcstrings */; };
 		E7B12DDA91E97DA6063B5308 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8245025723E10B60B6CA8B5F /* AppSettings.swift */; };
 		F15A75DD99DB94EDEFF6E401 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 268671A9A5C1820482BBD827 /* KeychainService.swift */; };
 		F79A608FB3E8FC4B3EAAFF08 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7093686D2D85FC4B0B9835B8 /* ContentView.swift */; };
@@ -61,6 +62,7 @@
 		EAC9720D2BE50110A642324E /* SupportedLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportedLanguage.swift; sourceTree = "<group>"; };
 		EB8355911F9853DA35945A50 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		ED17DD3DDCCBA6B7DC159114 /* MicrosoftTranslationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicrosoftTranslationEngine.swift; sourceTree = "<group>"; };
+		F05BF58AC8CE030FE0D6DF21 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		F09A0C8C82FB162A76693446 /* TTSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSService.swift; sourceTree = "<group>"; };
 		F22C17A40FD84A539D800FF2 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -88,6 +90,7 @@
 				8CC65F4B4D435E4F84054B84 /* Info.plist */,
 				3BB0E11B08247F4CCEF59B00 /* LingoBar.entitlements */,
 				E13DE44F429E74AE2958C5AB /* LingoBarApp.swift */,
+				F05BF58AC8CE030FE0D6DF21 /* Localizable.xcstrings */,
 				D75A9AFB90691F6BD6216A92 /* Models */,
 				68E159CCE74D63446466DCB6 /* Services */,
 				9615B9B6D6BCC481DC6BB69F /* StatusBar */,
@@ -208,6 +211,7 @@
 			knownRegions = (
 				Base,
 				en,
+				"zh-Hans",
 			);
 			mainGroup = A892740763E9F3A17714B3BA;
 			minimizedProjectReferenceProxies = 1;
@@ -231,6 +235,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				28C3410287B81DBFA72435D1 /* Assets.xcassets in Resources */,
+				E5C44DB8A0987090168DD647 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

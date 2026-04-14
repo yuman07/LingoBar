@@ -157,7 +157,7 @@ final class StatusBarController {
     }
 
     @objc private func checkForUpdates() {
-        // Will be wired to Sparkle in Phase 7
+        SharedEnvironment.shared.updaterController?.checkForUpdates(nil)
     }
 
     @objc private func showAbout() {
