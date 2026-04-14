@@ -10,15 +10,21 @@
 		28C3410287B81DBFA72435D1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0150D98D6B12EB86FB0410CB /* Assets.xcassets */; };
 		6F4895C88AEEE1BF108AF72A /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 0E6228D995BD0B8EE7EE8080 /* Sparkle */; };
 		7E6D8211640D60AFFC114E53 /* LingoBarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E13DE44F429E74AE2958C5AB /* LingoBarApp.swift */; };
+		80C8B5D6E2DD4F2F6ABAC7F3 /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22C17A40FD84A539D800FF2 /* StatusBarController.swift */; };
 		8E020B725A5546F1B32EA20E /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 716777C20879DAC936BBE255 /* KeyboardShortcuts */; };
+		F79A608FB3E8FC4B3EAAFF08 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7093686D2D85FC4B0B9835B8 /* ContentView.swift */; };
+		F7FD42AB8D5ECFA68AFCE322 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 472032D3ADEF940B8C36124B /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		0150D98D6B12EB86FB0410CB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3BB0E11B08247F4CCEF59B00 /* LingoBar.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LingoBar.entitlements; sourceTree = "<group>"; };
+		472032D3ADEF940B8C36124B /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		7093686D2D85FC4B0B9835B8 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		86CCE34FE28599C8F673221A /* LingoBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LingoBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8CC65F4B4D435E4F84054B84 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E13DE44F429E74AE2958C5AB /* LingoBarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LingoBarApp.swift; sourceTree = "<group>"; };
+		F22C17A40FD84A539D800FF2 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,6 +43,7 @@
 		05AED4B92FD665F020BF7D9C /* LingoBar */ = {
 			isa = PBXGroup;
 			children = (
+				472032D3ADEF940B8C36124B /* AppDelegate.swift */,
 				0150D98D6B12EB86FB0410CB /* Assets.xcassets */,
 				8CC65F4B4D435E4F84054B84 /* Info.plist */,
 				3BB0E11B08247F4CCEF59B00 /* LingoBar.entitlements */,
@@ -75,6 +82,7 @@
 		9615B9B6D6BCC481DC6BB69F /* StatusBar */ = {
 			isa = PBXGroup;
 			children = (
+				F22C17A40FD84A539D800FF2 /* StatusBarController.swift */,
 			);
 			path = StatusBar;
 			sourceTree = "<group>";
@@ -90,6 +98,7 @@
 		AFF3FC73A5AE70641AB21E85 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				7093686D2D85FC4B0B9835B8 /* ContentView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -175,7 +184,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F7FD42AB8D5ECFA68AFCE322 /* AppDelegate.swift in Sources */,
+				F79A608FB3E8FC4B3EAAFF08 /* ContentView.swift in Sources */,
 				7E6D8211640D60AFFC114E53 /* LingoBarApp.swift in Sources */,
+				80C8B5D6E2DD4F2F6ABAC7F3 /* StatusBarController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
