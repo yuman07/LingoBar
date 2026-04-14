@@ -35,24 +35,26 @@ final class TranslationManager {
             try? await Task.sleep(for: .milliseconds(500))
             guard !Task.isCancelled else { return }
 
-            let source = appState.sourceLanguage
+            // Always resolve Auto to a concrete language so Apple Translation
+            // never shows its own language picker dialog
+            let detectedSource = appState.sourceLanguage == .auto
+                ? detectLanguage(text)
+                : appState.sourceLanguage
             let target = resolveTargetLanguage(
-                source: source,
+                source: detectedSource,
                 target: appState.targetLanguage,
                 text: text
             )
 
             let selectedEngine = settings.selectedEngine
 
-            // Third-party engine path
             if selectedEngine != .apple {
                 await translateWithThirdParty(
-                    text: text, source: source, target: target,
+                    text: text, source: detectedSource, target: target,
                     selectedEngine: selectedEngine, appState: appState
                 )
             } else {
-                // Apple Translation path (via .translationTask modifier)
-                appleEngine.triggerTranslation(text: text, from: source, to: target)
+                appleEngine.triggerTranslation(text: text, from: detectedSource, to: target)
             }
         }
     }
