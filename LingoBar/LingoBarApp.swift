@@ -34,8 +34,6 @@ struct LingoBarApp: App {
         SharedEnvironment.shared.appSettings = settings
         SharedEnvironment.shared.modelContainer = container
         SharedEnvironment.shared.updaterController = updaterController
-
-        applyAppearance(settings.appearanceMode)
     }
 }
 

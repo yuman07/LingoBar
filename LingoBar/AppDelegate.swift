@@ -6,5 +6,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusBarController = StatusBarController()
+
+        if let settings = SharedEnvironment.shared.appSettings {
+            applyAppearance(settings.appearanceMode)
+        }
     }
 }
