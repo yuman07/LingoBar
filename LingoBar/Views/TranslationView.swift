@@ -162,11 +162,11 @@ struct TranslationView: View {
 
     private var languagePackNotInstalledView: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Language pack not installed.")
+            Text(String(localized: "Language pack not installed."))
                 .font(.body)
                 .foregroundStyle(.secondary)
             Button(action: openTranslationSettings) {
-                Text("Download in System Settings →")
+                Text(String(localized: "Go to download →"))
                     .font(.body)
             }
             .buttonStyle(.link)
@@ -204,7 +204,7 @@ struct TranslationView: View {
     }
 
     private func openTranslationSettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.Localization-Settings.extension") {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.Localization-Settings.extension?Translate") {
             NSWorkspace.shared.open(url)
         }
     }

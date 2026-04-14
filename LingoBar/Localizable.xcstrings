@@ -358,10 +358,24 @@
         }
       }
     },
-    "Language pack not installed. Please download it in System Settings → General → Language & Region → Translation Languages." : {
+    "Language pack not installed." : {
       "localizations" : {
         "zh-Hans" : {
-          "stringUnit" : { "state" : "translated", "value" : "语言包未安装，请在系统设置 → 通用 → 语言与地区 → 翻译语言中下载。" }
+          "stringUnit" : { "state" : "translated", "value" : "语言包未安装。" }
+        }
+      }
+    },
+    "Go to download →" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "前往下载 →" }
+        }
+      }
+    },
+    "LingoBar Settings" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "LingoBar 设置" }
         }
       }
     }
