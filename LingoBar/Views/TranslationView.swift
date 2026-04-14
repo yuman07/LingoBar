@@ -164,10 +164,12 @@ struct TranslationView: View {
     }
 
     private func speakInputText() {
-        // Will be wired to TTSService in Phase 5
+        let language = appState.sourceLanguage == .auto ? .english : appState.sourceLanguage
+        TTSService.shared.speak(text: appState.inputText, language: language)
     }
 
     private func speakOutputText() {
-        // Will be wired to TTSService in Phase 5
+        let language = appState.targetLanguage == .auto ? .english : appState.targetLanguage
+        TTSService.shared.speak(text: appState.outputText, language: language)
     }
 }

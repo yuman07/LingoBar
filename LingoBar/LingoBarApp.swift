@@ -1,3 +1,4 @@
+import AppKit
 import SwiftData
 import SwiftUI
 
@@ -7,7 +8,8 @@ struct LingoBarApp: App {
 
     var body: some Scene {
         Settings {
-            EmptyView()
+            SettingsView()
+                .environment(SharedEnvironment.shared.appSettings!)
         }
     }
 
@@ -23,6 +25,8 @@ struct LingoBarApp: App {
         SharedEnvironment.shared.translationManager = manager
         SharedEnvironment.shared.appSettings = settings
         SharedEnvironment.shared.modelContainer = container
+
+        applyAppearance(settings.appearanceMode)
     }
 }
 
@@ -34,4 +38,16 @@ final class SharedEnvironment {
     var appSettings: AppSettings?
     var modelContainer: ModelContainer?
     private init() {}
+}
+
+@MainActor
+func applyAppearance(_ mode: AppearanceMode) {
+    switch mode {
+    case .system:
+        NSApp.appearance = nil
+    case .light:
+        NSApp.appearance = NSAppearance(named: .aqua)
+    case .dark:
+        NSApp.appearance = NSAppearance(named: .darkAqua)
+    }
 }

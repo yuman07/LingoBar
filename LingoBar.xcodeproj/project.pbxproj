@@ -7,7 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		22F21DC20CE4BC72D001AC36 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E5537D336DEEC1B936D96B3 /* SettingsView.swift */; };
 		28C3410287B81DBFA72435D1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0150D98D6B12EB86FB0410CB /* Assets.xcassets */; };
+		2BFE506EC0C5EC6DE7D4F141 /* TTSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F09A0C8C82FB162A76693446 /* TTSService.swift */; };
 		35B385153EA954CB677174EA /* KeyboardShortcutNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79C8E094A76B63C6091A3590 /* KeyboardShortcutNames.swift */; };
 		3A08D0A58805DEA0C8309A0B /* TranslationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95C5D1E44701F1BEA5B40DD3 /* TranslationView.swift */; };
 		4AD45CE2FD8CD4FC171FF397 /* LanguagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91BCA0A029DAB6CCF713644D /* LanguagePicker.swift */; };
@@ -24,12 +26,15 @@
 		D36764E81560BF9C0968BF14 /* SupportedLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAC9720D2BE50110A642324E /* SupportedLanguage.swift */; };
 		D9ED0C6A58CD895CD0D7DDF6 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94F6991EFB9E9619C3697198 /* AppState.swift */; };
 		E7B12DDA91E97DA6063B5308 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8245025723E10B60B6CA8B5F /* AppSettings.swift */; };
+		F15A75DD99DB94EDEFF6E401 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 268671A9A5C1820482BBD827 /* KeychainService.swift */; };
 		F79A608FB3E8FC4B3EAAFF08 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7093686D2D85FC4B0B9835B8 /* ContentView.swift */; };
 		F7FD42AB8D5ECFA68AFCE322 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 472032D3ADEF940B8C36124B /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		0150D98D6B12EB86FB0410CB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1E5537D336DEEC1B936D96B3 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		268671A9A5C1820482BBD827 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
 		3BB0E11B08247F4CCEF59B00 /* LingoBar.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LingoBar.entitlements; sourceTree = "<group>"; };
 		472032D3ADEF940B8C36124B /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		6F4ABA7430BBBB3FD262D981 /* TranslationPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationPanel.swift; sourceTree = "<group>"; };
@@ -48,6 +53,7 @@
 		E13DE44F429E74AE2958C5AB /* LingoBarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LingoBarApp.swift; sourceTree = "<group>"; };
 		EAC9720D2BE50110A642324E /* SupportedLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportedLanguage.swift; sourceTree = "<group>"; };
 		EB8355911F9853DA35945A50 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		F09A0C8C82FB162A76693446 /* TTSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSService.swift; sourceTree = "<group>"; };
 		F22C17A40FD84A539D800FF2 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -87,8 +93,10 @@
 			isa = PBXGroup;
 			children = (
 				92375AEE639DC4A151AF8B1C /* AppleTranslationEngine.swift */,
+				268671A9A5C1820482BBD827 /* KeychainService.swift */,
 				94010C6E2A6AD2DBED122DA2 /* TranslationEngineProtocol.swift */,
 				C83635AFD914DC00A671E2DB /* TranslationManager.swift */,
+				F09A0C8C82FB162A76693446 /* TTSService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -132,6 +140,7 @@
 				7093686D2D85FC4B0B9835B8 /* ContentView.swift */,
 				EB8355911F9853DA35945A50 /* HistoryView.swift */,
 				91BCA0A029DAB6CCF713644D /* LanguagePicker.swift */,
+				1E5537D336DEEC1B936D96B3 /* SettingsView.swift */,
 				95C5D1E44701F1BEA5B40DD3 /* TranslationView.swift */,
 			);
 			path = Views;
@@ -227,10 +236,13 @@
 				F79A608FB3E8FC4B3EAAFF08 /* ContentView.swift in Sources */,
 				AFFB0EFDF9B68286229EB857 /* HistoryView.swift in Sources */,
 				35B385153EA954CB677174EA /* KeyboardShortcutNames.swift in Sources */,
+				F15A75DD99DB94EDEFF6E401 /* KeychainService.swift in Sources */,
 				4AD45CE2FD8CD4FC171FF397 /* LanguagePicker.swift in Sources */,
 				7E6D8211640D60AFFC114E53 /* LingoBarApp.swift in Sources */,
+				22F21DC20CE4BC72D001AC36 /* SettingsView.swift in Sources */,
 				80C8B5D6E2DD4F2F6ABAC7F3 /* StatusBarController.swift in Sources */,
 				D36764E81560BF9C0968BF14 /* SupportedLanguage.swift in Sources */,
+				2BFE506EC0C5EC6DE7D4F141 /* TTSService.swift in Sources */,
 				830718572CC720CB2968C055 /* TranslationEngineProtocol.swift in Sources */,
 				7549869EFC93129DE856E9BC /* TranslationManager.swift in Sources */,
 				51B46F098A5533A3A9810943 /* TranslationPanel.swift in Sources */,
