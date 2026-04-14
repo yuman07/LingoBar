@@ -103,7 +103,6 @@ struct TranslationView: View {
                                 .foregroundStyle(appState.outputText.isEmpty ? .clear : .primary)
                                 .textSelection(.enabled)
                                 .lineLimit(1...8)
-                                .frame(maxWidth: .infinity, alignment: .topLeading)
                                 .padding(.horizontal, 12)
                         }
                     }
