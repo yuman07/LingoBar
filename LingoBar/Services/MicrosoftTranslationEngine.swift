@@ -9,7 +9,7 @@ struct MicrosoftTranslationEngine: TranslationEngineProtocol {
         to target: SupportedLanguage
     ) async throws -> TranslationResult {
         guard let apiKey = KeychainService.load(key: "microsoft_api_key"), !apiKey.isEmpty else {
-            throw TranslationError.missingAPIKey
+            throw EngineError.missingAPIKey
         }
         let region = KeychainService.load(key: "microsoft_region") ?? "global"
 
@@ -30,20 +30,20 @@ struct MicrosoftTranslationEngine: TranslationEngineProtocol {
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw TranslationError.networkError
+            throw EngineError.networkError
         }
 
         if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
-            throw TranslationError.invalidAPIKey
+            throw EngineError.invalidAPIKey
         }
         guard httpResponse.statusCode == 200 else {
-            throw TranslationError.apiError(httpResponse.statusCode)
+            throw EngineError.apiError(httpResponse.statusCode)
         }
 
         let json = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
         let translations = json?.first?["translations"] as? [[String: Any]]
         guard let translatedText = translations?.first?["text"] as? String else {
-            throw TranslationError.parseError
+            throw EngineError.parseError
         }
 
         let detectedLang = (json?.first?["detectedLanguage"] as? [String: Any])?["language"] as? String

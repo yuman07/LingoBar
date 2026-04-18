@@ -12,7 +12,7 @@ struct BaiduTranslationEngine: TranslationEngineProtocol {
         guard let appId = KeychainService.load(key: "baidu_app_id"), !appId.isEmpty,
               let secret = KeychainService.load(key: "baidu_secret"), !secret.isEmpty
         else {
-            throw TranslationError.missingAPIKey
+            throw EngineError.missingAPIKey
         }
 
         let salt = String(Int.random(in: 10000...99999))
@@ -33,20 +33,20 @@ struct BaiduTranslationEngine: TranslationEngineProtocol {
 
         let (data, response) = try await URLSession.shared.data(from: components.url!)
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw TranslationError.networkError
+            throw EngineError.networkError
         }
 
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
 
         if let errorCode = json?["error_code"] as? String {
-            if errorCode == "52003" { throw TranslationError.invalidAPIKey }
-            if errorCode == "54004" { throw TranslationError.quotaExhausted }
-            throw TranslationError.apiError(Int(errorCode) ?? 0)
+            if errorCode == "52003" { throw EngineError.invalidAPIKey }
+            if errorCode == "54004" { throw EngineError.quotaExhausted }
+            throw EngineError.apiError(Int(errorCode) ?? 0)
         }
 
         let results = json?["trans_result"] as? [[String: Any]]
         guard let translatedText = results?.first?["dst"] as? String else {
-            throw TranslationError.parseError
+            throw EngineError.parseError
         }
 
         let detectedSource = (json?["from"] as? String).map {

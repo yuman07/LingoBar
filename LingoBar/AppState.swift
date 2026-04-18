@@ -6,7 +6,7 @@ final class AppState {
     var inputText: String = ""
     var outputText: String = ""
     var isTranslating: Bool = false
-    var errorMessage: String?
+    var error: TranslationError?
     var sourceLanguage: SupportedLanguage = .auto
     var targetLanguage: SupportedLanguage = .english
     var activeTab: Tab = .translate
@@ -20,6 +20,6 @@ final class AppState {
     func clearContent() {
         inputText = ""
         outputText = ""
-        errorMessage = nil
+        error = nil
     }
 }

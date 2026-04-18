@@ -19,36 +19,40 @@ enum AppearanceMode: String, CaseIterable, Codable, Sendable, Identifiable {
 @Observable
 @MainActor
 final class AppSettings {
-    private let defaults = UserDefaults.standard
+    @ObservationIgnored private let defaults = UserDefaults.standard
 
     var selectedEngine: TranslationEngineType {
-        get { TranslationEngineType(rawValue: defaults.string(forKey: "selectedEngine") ?? "") ?? .apple }
-        set { defaults.set(newValue.rawValue, forKey: "selectedEngine") }
+        didSet { defaults.set(selectedEngine.rawValue, forKey: Keys.selectedEngine) }
     }
 
     var contentRetentionSeconds: Int {
-        get { defaults.object(forKey: "contentRetention") as? Int ?? 60 }
-        set { defaults.set(newValue, forKey: "contentRetention") }
+        didSet { defaults.set(contentRetentionSeconds, forKey: Keys.contentRetention) }
     }
 
     var sourceLanguage: SupportedLanguage {
-        get { SupportedLanguage(rawValue: defaults.string(forKey: "sourceLanguage") ?? "") ?? .auto }
-        set { defaults.set(newValue.rawValue, forKey: "sourceLanguage") }
+        didSet { defaults.set(sourceLanguage.rawValue, forKey: Keys.sourceLanguage) }
     }
 
     var targetLanguage: SupportedLanguage {
-        get { SupportedLanguage(rawValue: defaults.string(forKey: "targetLanguage") ?? "") ?? .english }
-        set { defaults.set(newValue.rawValue, forKey: "targetLanguage") }
+        didSet { defaults.set(targetLanguage.rawValue, forKey: Keys.targetLanguage) }
     }
 
     var appearanceMode: AppearanceMode {
-        get { AppearanceMode(rawValue: defaults.string(forKey: "appearanceMode") ?? "") ?? .system }
-        set { defaults.set(newValue.rawValue, forKey: "appearanceMode") }
+        didSet { defaults.set(appearanceMode.rawValue, forKey: Keys.appearanceMode) }
     }
 
     var failoverEnabled: Bool {
-        get { defaults.object(forKey: "failoverEnabled") as? Bool ?? true }
-        set { defaults.set(newValue, forKey: "failoverEnabled") }
+        didSet { defaults.set(failoverEnabled, forKey: Keys.failoverEnabled) }
+    }
+
+    init() {
+        let d = UserDefaults.standard
+        selectedEngine = TranslationEngineType(rawValue: d.string(forKey: Keys.selectedEngine) ?? "") ?? .apple
+        contentRetentionSeconds = d.object(forKey: Keys.contentRetention) as? Int ?? 60
+        sourceLanguage = SupportedLanguage(rawValue: d.string(forKey: Keys.sourceLanguage) ?? "") ?? .auto
+        targetLanguage = SupportedLanguage(rawValue: d.string(forKey: Keys.targetLanguage) ?? "") ?? .english
+        appearanceMode = AppearanceMode(rawValue: d.string(forKey: Keys.appearanceMode) ?? "") ?? .system
+        failoverEnabled = d.object(forKey: Keys.failoverEnabled) as? Bool ?? true
     }
 
     func loadSavedLanguages(into appState: AppState) {
@@ -59,5 +63,14 @@ final class AppSettings {
     func saveLanguages(from appState: AppState) {
         sourceLanguage = appState.sourceLanguage
         targetLanguage = appState.targetLanguage
+    }
+
+    private enum Keys {
+        static let selectedEngine = "selectedEngine"
+        static let contentRetention = "contentRetention"
+        static let sourceLanguage = "sourceLanguage"
+        static let targetLanguage = "targetLanguage"
+        static let appearanceMode = "appearanceMode"
+        static let failoverEnabled = "failoverEnabled"
     }
 }

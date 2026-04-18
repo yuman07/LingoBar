@@ -24,13 +24,13 @@ final class TranslationManager {
         let text = appState.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else {
             appState.outputText = ""
-            appState.errorMessage = nil
+            appState.error = nil
             appState.isTranslating = false
             return
         }
 
         appState.isTranslating = true
-        appState.errorMessage = nil
+        appState.error = nil
 
         debounceTask = Task {
             try? await Task.sleep(for: .milliseconds(500))
@@ -49,65 +49,117 @@ final class TranslationManager {
 
             let selectedEngine = settings.selectedEngine
 
-            if selectedEngine != .apple {
-                await translateWithThirdParty(
+            if selectedEngine == .apple {
+                await runApplePreferred(
+                    text: text, source: detectedSource, target: target, appState: appState
+                )
+            } else {
+                await runThirdPartyPreferred(
                     text: text, source: detectedSource, target: target,
                     selectedEngine: selectedEngine, appState: appState
                 )
-            } else {
-                // Check if Apple Translation has the language pair installed
-                guard let sourceLang = detectedSource.localeLanguage,
-                      let targetLang = target.localeLanguage else {
-                    appState.errorMessage = String(localized: "Unsupported language pair.")
-                    appState.isTranslating = false
-                    return
-                }
-
-                let availability = LanguageAvailability()
-                let status = await availability.status(
-                    from: sourceLang,
-                    to: targetLang
-                )
-
-                guard status == .installed else {
-                    appState.errorMessage = "language_pack_not_installed"
-                    appState.isTranslating = false
-                    return
-                }
-
-                appleEngine.triggerTranslation(text: text, from: detectedSource, to: target)
             }
         }
     }
 
-    private func translateWithThirdParty(
+    // MARK: - Apple-preferred path
+
+    private func runApplePreferred(
+        text: String,
+        source: SupportedLanguage,
+        target: SupportedLanguage,
+        appState: AppState
+    ) async {
+        guard let sourceLang = source.localeLanguage,
+              let targetLang = target.localeLanguage else {
+            appState.error = .unsupportedLanguagePair
+            appState.isTranslating = false
+            return
+        }
+
+        let availability = LanguageAvailability()
+        let status = await availability.status(from: sourceLang, to: targetLang)
+        guard !Task.isCancelled else { return }
+
+        if status == .installed {
+            appleEngine.triggerTranslation(text: text, from: source, to: target)
+            return
+        }
+
+        // Apple language pack not installed.
+        // If failover is enabled and any third-party engine is configured, try them.
+        if settings.failoverEnabled {
+            let configured = configuredThirdPartyEngines()
+            if !configured.isEmpty {
+                let succeeded = await tryThirdPartyChain(
+                    text: text, source: source, target: target,
+                    order: configured, appState: appState
+                )
+                if succeeded { return }
+            }
+        }
+
+        // No failover possible — prompt user to download the pack.
+        appState.error = .languagePackNotInstalled
+        appState.isTranslating = false
+    }
+
+    // MARK: - Third-party-preferred path
+
+    private func runThirdPartyPreferred(
         text: String,
         source: SupportedLanguage,
         target: SupportedLanguage,
         selectedEngine: TranslationEngineType,
         appState: AppState
     ) async {
-        // Build failover chain: selected engine first, then others, Apple as fallback
-        var engineOrder: [TranslationEngineType] = [selectedEngine]
+        var order: [TranslationEngineType] = [selectedEngine]
         if settings.failoverEnabled {
-            for engineType in TranslationEngineType.allCases where engineType != selectedEngine && engineType != .apple {
-                if thirdPartyEngines[engineType] != nil {
-                    engineOrder.append(engineType)
-                }
+            for engineType in configuredThirdPartyEngines() where engineType != selectedEngine {
+                order.append(engineType)
             }
         }
 
-        for engineType in engineOrder {
-            guard !Task.isCancelled else { return }
-            guard let engine = thirdPartyEngines[engineType] else { continue }
+        let succeeded = await tryThirdPartyChain(
+            text: text, source: source, target: target, order: order, appState: appState
+        )
+        if succeeded { return }
 
+        // Apple as final fallback (failover only, and only if language pair is installed)
+        guard !Task.isCancelled else { return }
+        if settings.failoverEnabled,
+           let sourceLang = source.localeLanguage,
+           let targetLang = target.localeLanguage {
+            let availability = LanguageAvailability()
+            let status = await availability.status(from: sourceLang, to: targetLang)
+            guard !Task.isCancelled else { return }
+            if status == .installed {
+                appleEngine.triggerTranslation(text: text, from: source, to: target)
+                return
+            }
+        }
+
+        appState.error = .allEnginesFailed
+        appState.isTranslating = false
+    }
+
+    private func tryThirdPartyChain(
+        text: String,
+        source: SupportedLanguage,
+        target: SupportedLanguage,
+        order: [TranslationEngineType],
+        appState: AppState
+    ) async -> Bool {
+        for engineType in order {
+            guard !Task.isCancelled else { return true }
+            guard let engine = thirdPartyEngines[engineType] else { continue }
             do {
                 let result = try await engine.translate(text: text, from: source, to: target)
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled else { return true }
                 appState.outputText = result.translatedText
                 appState.currentEngineType = result.engineType
                 appState.isTranslating = false
-                appState.errorMessage = nil
+                appState.error = nil
                 saveHistoryRecord(
                     sourceText: text,
                     targetText: result.translatedText,
@@ -115,22 +167,37 @@ final class TranslationManager {
                     targetLanguage: target,
                     engineType: result.engineType
                 )
-                return
+                return true
             } catch {
                 continue
             }
         }
-
-        // Final fallback: Apple Translation
-        guard !Task.isCancelled else { return }
-        appleEngine.triggerTranslation(text: text, from: source, to: target)
+        return false
     }
+
+    private func configuredThirdPartyEngines() -> [TranslationEngineType] {
+        TranslationEngineType.allCases.filter { engine in
+            engine != .apple && hasCredentials(for: engine)
+        }
+    }
+
+    private func hasCredentials(for engine: TranslationEngineType) -> Bool {
+        switch engine {
+        case .apple: true
+        case .google: KeychainService.load(key: "google_api_key") != nil
+        case .microsoft: KeychainService.load(key: "microsoft_api_key") != nil
+        case .baidu: KeychainService.load(key: "baidu_app_id") != nil
+        case .youdao: KeychainService.load(key: "youdao_app_key") != nil
+        }
+    }
+
+    // MARK: - Apple Translation result handlers (called from .translationTask)
 
     func handleTranslationResult(response: String, detectedSource: SupportedLanguage?, appState: AppState) {
         appState.outputText = response
         appState.currentEngineType = .apple
         appState.isTranslating = false
-        appState.errorMessage = nil
+        appState.error = nil
 
         saveHistoryRecord(
             sourceText: appState.inputText.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -143,7 +210,7 @@ final class TranslationManager {
 
     func handleTranslationError(_ error: any Error, appState: AppState) {
         appState.outputText = ""
-        appState.errorMessage = error.localizedDescription
+        appState.error = .engineError(error.localizedDescription)
         appState.isTranslating = false
     }
 

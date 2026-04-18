@@ -5,6 +5,7 @@ import SwiftUI
 struct TranslationView: View {
     @Environment(AppState.self) private var appState
     @Environment(TranslationManager.self) private var translationManager
+    @Environment(AppSettings.self) private var appSettings
 
     var body: some View {
         @Bindable var appState = appState
@@ -87,16 +88,9 @@ struct TranslationView: View {
                                 Spacer()
                             }
                             .padding(.horizontal, 12)
-                        } else if let error = appState.errorMessage {
-                            if error == "language_pack_not_installed" {
-                                languagePackNotInstalledView
-                                    .padding(.horizontal, 12)
-                            } else {
-                                Text(error)
-                                    .foregroundStyle(.red)
-                                    .font(.body)
-                                    .padding(.horizontal, 12)
-                            }
+                        } else if let error = appState.error {
+                            errorView(for: error)
+                                .padding(.horizontal, 12)
                         } else {
                             Text(appState.outputText.isEmpty ? " " : appState.outputText)
                                 .font(.body)
@@ -125,6 +119,9 @@ struct TranslationView: View {
         .onChange(of: appState.targetLanguage) {
             translationManager.translateWithDebounce(appState: appState)
         }
+        .onChange(of: appSettings.selectedEngine) {
+            translationManager.translateWithDebounce(appState: appState)
+        }
         .translationTask(translationManager.appleEngine.configuration) { session in
             guard let text = translationManager.appleEngine.consumePendingText(),
                   !text.isEmpty else { return }
@@ -145,6 +142,18 @@ struct TranslationView: View {
     }
 
     // MARK: - Components
+
+    @ViewBuilder
+    private func errorView(for error: TranslationError) -> some View {
+        switch error {
+        case .languagePackNotInstalled:
+            languagePackNotInstalledView
+        case .unsupportedLanguagePair, .allEnginesFailed, .engineError:
+            Text(error.localizedMessage)
+                .foregroundStyle(.red)
+                .font(.body)
+        }
+    }
 
     private var languagePackNotInstalledView: some View {
         VStack(alignment: .leading, spacing: 6) {

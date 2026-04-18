@@ -19,7 +19,16 @@ struct LingoBarApp: App {
         let manager = TranslationManager()
         let settings = AppSettings()
 
-        let container = try! ModelContainer(for: TranslationRecord.self)
+        let container: ModelContainer
+        do {
+            container = try ModelContainer(for: TranslationRecord.self)
+        } catch {
+            // On-disk store is corrupt or unavailable; fall back to in-memory so
+            // the app still runs (translation works without history).
+            let config = ModelConfiguration(isStoredInMemoryOnly: true)
+            container = try! ModelContainer(for: TranslationRecord.self, configurations: config)
+        }
+
         settings.loadSavedLanguages(into: state)
 
         updaterController = SPUStandardUpdaterController(

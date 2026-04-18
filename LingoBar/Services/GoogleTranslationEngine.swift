@@ -9,7 +9,7 @@ struct GoogleTranslationEngine: TranslationEngineProtocol {
         to target: SupportedLanguage
     ) async throws -> TranslationResult {
         guard let apiKey = KeychainService.load(key: "google_api_key"), !apiKey.isEmpty else {
-            throw TranslationError.missingAPIKey
+            throw EngineError.missingAPIKey
         }
 
         var components = URLComponents(string: "https://translation.googleapis.com/language/translate/v2")!
@@ -24,21 +24,21 @@ struct GoogleTranslationEngine: TranslationEngineProtocol {
 
         let (data, response) = try await URLSession.shared.data(from: components.url!)
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw TranslationError.networkError
+            throw EngineError.networkError
         }
 
         if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
-            throw TranslationError.invalidAPIKey
+            throw EngineError.invalidAPIKey
         }
         guard httpResponse.statusCode == 200 else {
-            throw TranslationError.apiError(httpResponse.statusCode)
+            throw EngineError.apiError(httpResponse.statusCode)
         }
 
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         let dataObj = json?["data"] as? [String: Any]
         let translations = dataObj?["translations"] as? [[String: Any]]
         guard let translatedText = translations?.first?["translatedText"] as? String else {
-            throw TranslationError.parseError
+            throw EngineError.parseError
         }
 
         let detectedSource = (translations?.first?["detectedSourceLanguage"] as? String)
@@ -82,7 +82,7 @@ extension SupportedLanguage {
     }
 }
 
-enum TranslationError: Error, LocalizedError {
+enum EngineError: Error, LocalizedError {
     case missingAPIKey
     case invalidAPIKey
     case quotaExhausted

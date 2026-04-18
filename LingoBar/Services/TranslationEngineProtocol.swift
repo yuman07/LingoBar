@@ -36,6 +36,26 @@ struct TranslationResult: Sendable {
     let engineType: TranslationEngineType
 }
 
+enum TranslationError: Sendable, Equatable {
+    case languagePackNotInstalled
+    case unsupportedLanguagePair
+    case allEnginesFailed
+    case engineError(String)
+
+    var localizedMessage: String {
+        switch self {
+        case .languagePackNotInstalled:
+            String(localized: "Language pack not installed.")
+        case .unsupportedLanguagePair:
+            String(localized: "Unsupported language pair.")
+        case .allEnginesFailed:
+            String(localized: "All translation engines failed.")
+        case .engineError(let message):
+            message
+        }
+    }
+}
+
 protocol TranslationEngineProtocol: Sendable {
     var engineType: TranslationEngineType { get }
     func translate(

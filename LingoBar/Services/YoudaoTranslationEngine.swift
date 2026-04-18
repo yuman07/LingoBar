@@ -12,7 +12,7 @@ struct YoudaoTranslationEngine: TranslationEngineProtocol {
         guard let appKey = KeychainService.load(key: "youdao_app_key"), !appKey.isEmpty,
               let secret = KeychainService.load(key: "youdao_secret"), !secret.isEmpty
         else {
-            throw TranslationError.missingAPIKey
+            throw EngineError.missingAPIKey
         }
 
         let salt = UUID().uuidString
@@ -37,19 +37,19 @@ struct YoudaoTranslationEngine: TranslationEngineProtocol {
 
         let (data, response) = try await URLSession.shared.data(from: components.url!)
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw TranslationError.networkError
+            throw EngineError.networkError
         }
 
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
 
         if let errorCode = json?["errorCode"] as? String, errorCode != "0" {
-            if errorCode == "401" { throw TranslationError.invalidAPIKey }
-            throw TranslationError.apiError(Int(errorCode) ?? 0)
+            if errorCode == "401" { throw EngineError.invalidAPIKey }
+            throw EngineError.apiError(Int(errorCode) ?? 0)
         }
 
         let results = json?["translation"] as? [String]
         guard let translatedText = results?.first else {
-            throw TranslationError.parseError
+            throw EngineError.parseError
         }
 
         return TranslationResult(

@@ -53,6 +53,9 @@ private struct GeneralSettingsView: View {
                     Text(mode.displayName).tag(mode)
                 }
             }
+            .onChange(of: appSettings.appearanceMode) { _, newMode in
+                applyAppearance(newMode)
+            }
 
             Toggle(String(localized: "Launch at Login"), isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { _, newValue in
