@@ -4,7 +4,7 @@
     "Auto" : {
       "localizations" : {
         "zh-Hans" : {
-          "stringUnit" : { "state" : "translated", "value" : "自动" }
+          "stringUnit" : { "state" : "translated", "value" : "自动检测" }
         }
       }
     },
