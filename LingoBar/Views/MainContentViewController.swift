@@ -185,23 +185,33 @@ final class ModernSegmentedControl: NSView {
 
     private let labels: [String]
     private var segments: [SegmentCell] = []
+    private var dividers: [NSView] = []
     private let selectionView = NSView()
 
     init(labels: [String]) {
         self.labels = labels
         super.init(frame: .zero)
         wantsLayer = true
-        layer?.cornerRadius = 7
+        layer?.cornerRadius = 8
         layer?.cornerCurve = .continuous
 
         selectionView.wantsLayer = true
-        selectionView.layer?.cornerRadius = 5
+        selectionView.layer?.cornerRadius = 6
         selectionView.layer?.cornerCurve = .continuous
-        selectionView.layer?.shadowOpacity = 0.12
-        selectionView.layer?.shadowRadius = 2
+        selectionView.layer?.borderWidth = 0.5
+        selectionView.layer?.shadowRadius = 3
         selectionView.layer?.shadowOffset = CGSize(width: 0, height: -0.5)
         selectionView.layer?.shadowColor = NSColor.black.cgColor
         addSubview(selectionView)
+
+        // Dividers live *behind* the selection bubble so a moving bubble
+        // occludes them at its boundaries — the classic iOS Segmented look.
+        for _ in 0..<max(0, labels.count - 1) {
+            let line = NSView()
+            line.wantsLayer = true
+            addSubview(line, positioned: .below, relativeTo: selectionView)
+            dividers.append(line)
+        }
 
         for (i, label) in labels.enumerated() {
             let cell = SegmentCell()
@@ -218,7 +228,7 @@ final class ModernSegmentedControl: NSView {
     required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
 
     override var intrinsicContentSize: NSSize {
-        NSSize(width: NSView.noIntrinsicMetric, height: 24)
+        NSSize(width: NSView.noIntrinsicMetric, height: 26)
     }
 
     override var allowsVibrancy: Bool { false }
@@ -228,9 +238,20 @@ final class ModernSegmentedControl: NSView {
         guard !segments.isEmpty, bounds.width > 0 else { return }
         let count = CGFloat(segments.count)
         let segWidth = bounds.width / count
+
         for (i, cell) in segments.enumerated() {
             cell.frame = NSRect(x: CGFloat(i) * segWidth, y: 0, width: segWidth, height: bounds.height)
         }
+
+        // Dividers: 1 pt wide, 50% of the track height, centred vertically,
+        // sitting on the boundary between two segments.
+        let dividerHeight = bounds.height * 0.5
+        let dividerY = (bounds.height - dividerHeight) / 2
+        for (i, line) in dividers.enumerated() {
+            let x = CGFloat(i + 1) * segWidth - 0.5
+            line.frame = NSRect(x: x, y: dividerY, width: 1, height: dividerHeight)
+        }
+
         updateSelection(animated: false)
     }
 
@@ -258,27 +279,56 @@ final class ModernSegmentedControl: NSView {
         )
         if animated {
             NSAnimationContext.runAnimationGroup { ctx in
-                ctx.duration = 0.2
-                ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                ctx.duration = 0.28
+                // Spring-ish curve: quick start, soft settle. Closest we can
+                // get to SwiftUI's default `.spring` without CASpringAnimation.
+                ctx.timingFunction = CAMediaTimingFunction(controlPoints: 0.32, 0.72, 0, 1)
                 ctx.allowsImplicitAnimation = true
                 selectionView.animator().frame = target
+                for (i, line) in dividers.enumerated() {
+                    line.animator().alphaValue = dividerAlpha(at: i)
+                }
             }
         } else {
             selectionView.frame = target
+            for (i, line) in dividers.enumerated() {
+                line.alphaValue = dividerAlpha(at: i)
+            }
         }
         for (i, cell) in segments.enumerated() {
             cell.isSelected = (i == selectedSegment)
         }
     }
 
+    /// Hide dividers adjacent to the selection (the ones at `selectedSegment - 1`
+    /// and `selectedSegment`). Divider `i` sits between segments `i` and `i+1`.
+    private func dividerAlpha(at i: Int) -> CGFloat {
+        (i == selectedSegment - 1 || i == selectedSegment) ? 0 : 1
+    }
+
     private func updateColors() {
         let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil
+
         layer?.backgroundColor = (isDark
-            ? NSColor(white: 1, alpha: 0.08)
-            : NSColor(white: 0, alpha: 0.06)).cgColor
+            ? NSColor(white: 1, alpha: 0.07)
+            : NSColor(white: 0, alpha: 0.05)).cgColor
+
+        // Softer than pure white — matches the off-white `secondarySystemGroupedBackground`
+        // feel of iOS's segmented pill instead of a harsh #FFF.
         selectionView.layer?.backgroundColor = (isDark
-            ? NSColor(white: 1, alpha: 0.18)
-            : NSColor.white).cgColor
+            ? NSColor(white: 1, alpha: 0.14)
+            : NSColor(calibratedWhite: 0.985, alpha: 1)).cgColor
+        selectionView.layer?.borderColor = (isDark
+            ? NSColor(white: 1, alpha: 0.06)
+            : NSColor(white: 0, alpha: 0.04)).cgColor
+        selectionView.layer?.shadowOpacity = isDark ? 0.25 : 0.08
+
+        let dividerColor = (isDark
+            ? NSColor(white: 1, alpha: 0.12)
+            : NSColor(white: 0, alpha: 0.10)).cgColor
+        for line in dividers {
+            line.layer?.backgroundColor = dividerColor
+        }
     }
 }
 
@@ -306,8 +356,10 @@ private final class SegmentCell: NSView {
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = .center
         let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 12, weight: isSelected ? .semibold : .medium),
-            .foregroundColor: NSColor.labelColor,
+            .font: NSFont.systemFont(ofSize: 12, weight: isSelected ? .semibold : .regular),
+            .foregroundColor: isSelected
+                ? NSColor.labelColor
+                : NSColor.secondaryLabelColor,
             .paragraphStyle: paragraph,
         ]
         let textSize = (title as NSString).size(withAttributes: attrs)
