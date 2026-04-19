@@ -54,12 +54,6 @@ final class AppSettings: ObservableObject {
     }
 
     func loadSavedLanguages(into appState: AppState) {
-        // Guard against stale same-language persistence from earlier builds —
-        // the picker now hides colliding values, and that would leave us
-        // selecting a language that's no longer in the menu.
-        if sourceLanguage != .auto && sourceLanguage == targetLanguage {
-            targetLanguage = sourceLanguage == .english ? .simplifiedChinese : .english
-        }
         appState.sourceLanguage = sourceLanguage
         appState.targetLanguage = targetLanguage
     }

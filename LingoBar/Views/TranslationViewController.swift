@@ -100,7 +100,12 @@ final class TranslationViewController: NSViewController {
         inputPicker = LanguagePopUpButton(languages: SupportedLanguage.sourceLanguages)
         inputPicker.onSelect = { [weak self] lang in
             guard let self else { return }
-            self.selectLanguage(lang, side: .source)
+            self.appState.sourceLanguage = lang
+            self.settings.sourceLanguage = lang
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.manager.translateWithDebounce(appState: self.appState)
+            }
         }
 
         inputCopyButton = CopyFeedbackButton { [weak self] in
@@ -211,7 +216,12 @@ final class TranslationViewController: NSViewController {
         outputPicker = LanguagePopUpButton(languages: SupportedLanguage.targetLanguages)
         outputPicker.onSelect = { [weak self] lang in
             guard let self else { return }
-            self.selectLanguage(lang, side: .target)
+            self.appState.targetLanguage = lang
+            self.settings.targetLanguage = lang
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.manager.translateWithDebounce(appState: self.appState)
+            }
         }
 
         engineTag = EngineTagView()
@@ -411,21 +421,14 @@ final class TranslationViewController: NSViewController {
         state.$sourceLanguage
             .removeDuplicates()
             .sink { [weak self] lang in
-                guard let self else { return }
-                self.inputPicker.select(lang)
-                // Hide the new source from the target picker so the two sides
-                // can't collide at all. `.auto` isn't in the target list, so
-                // excluding it is a no-op.
-                self.outputPicker.exclude(lang == .auto ? nil : lang)
+                self?.inputPicker.select(lang)
             }
             .store(in: &cancellables)
 
         state.$targetLanguage
             .removeDuplicates()
             .sink { [weak self] lang in
-                guard let self else { return }
-                self.outputPicker.select(lang)
-                self.inputPicker.exclude(lang)
+                self?.outputPicker.select(lang)
             }
             .store(in: &cancellables)
 
@@ -459,10 +462,6 @@ final class TranslationViewController: NSViewController {
     private func refreshFromState() {
         inputTextView.text = appState.inputText
         outputTextView.text = appState.outputText
-        // Apply exclusions before selecting so the current values exist in
-        // the rebuilt menus.
-        outputPicker.exclude(appState.sourceLanguage == .auto ? nil : appState.sourceLanguage)
-        inputPicker.exclude(appState.targetLanguage)
         inputPicker.select(appState.sourceLanguage)
         outputPicker.select(appState.targetLanguage)
         updateEngineIndicator(appState.currentEngineType)
@@ -607,51 +606,6 @@ final class TranslationViewController: NSViewController {
         let oldInput = appState.inputText
         appState.inputText = appState.outputText
         appState.outputText = oldInput
-    }
-
-    private enum LanguageSide { case source, target }
-
-    /// Apply a picker selection, swapping the opposite side away from the new
-    /// value if they'd otherwise collide — translating a language to itself
-    /// isn't meaningful, so we treat "picked the other side" as a swap intent.
-    private func selectLanguage(_ lang: SupportedLanguage, side: LanguageSide) {
-        let oldSource = appState.sourceLanguage
-        let oldTarget = appState.targetLanguage
-
-        var newSource = oldSource
-        var newTarget = oldTarget
-        switch side {
-        case .source: newSource = lang
-        case .target: newTarget = lang
-        }
-
-        // `.auto` isn't a real language, so source=.auto + any specific target
-        // is always valid; only guard the specific-to-specific collision.
-        if newSource != .auto && newSource == newTarget {
-            switch side {
-            case .source:
-                // User picked source; move target out of the way.
-                if oldSource != .auto && oldSource != newSource {
-                    newTarget = oldSource
-                } else {
-                    newTarget = lang == .english ? .simplifiedChinese : .english
-                }
-            case .target:
-                // User picked target; move source to the prior target (which
-                // can't be .auto since target list never contains it).
-                newSource = oldTarget
-            }
-        }
-
-        appState.sourceLanguage = newSource
-        appState.targetLanguage = newTarget
-        settings.sourceLanguage = newSource
-        settings.targetLanguage = newTarget
-
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            self.manager.translateWithDebounce(appState: self.appState)
-        }
     }
 
     @objc private func openTranslationSettings() {

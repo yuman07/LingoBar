@@ -32,6 +32,15 @@ final class TranslationManager {
             return
         }
 
+        // Same source and target → there's nothing to translate. Echo the
+        // input straight through (no debounce, no spinner, no engine call).
+        if appState.sourceLanguage != .auto && appState.sourceLanguage == appState.targetLanguage {
+            appState.outputText = appState.inputText
+            appState.error = nil
+            appState.isTranslating = false
+            return
+        }
+
         appState.isTranslating = true
         appState.error = nil
 
