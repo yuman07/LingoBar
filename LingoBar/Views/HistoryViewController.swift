@@ -46,8 +46,18 @@ final class HistoryViewController: NSViewController {
     // MARK: - Layout
 
     private func buildLayout() {
+        // Swap in a cell that overrides drawBezel to paint a subtle translucent
+        // pill. Keeps NSSearchFieldCell's magnifier + clear-button plumbing
+        // intact; only the fill color changes, so the search field stops
+        // reading as a stark white card pasted on the popover's vibrancy.
         searchField = NSSearchField()
-        searchField.placeholderString = String(localized: "Search history…")
+        let searchCell = SoftBezelSearchFieldCell(textCell: "")
+        searchCell.placeholderString = String(localized: "Search history…")
+        searchCell.isBezeled = true
+        searchCell.bezelStyle = .roundedBezel
+        searchCell.focusRingType = .default
+        searchCell.isScrollable = true
+        searchField.cell = searchCell
         searchField.translatesAutoresizingMaskIntoConstraints = false
         searchField.target = self
         searchField.action = #selector(searchChanged)
@@ -251,9 +261,9 @@ extension HistoryViewController: NSTableViewDataSource, NSTableViewDelegate {
 
 /// Row view that paints a hairline divider under each row except the last,
 /// so scrolling through history reads as a list instead of one opaque block.
-/// Uses `quaternaryLabelColor` rather than `separatorColor` — the latter
-/// resolves to near-opaque white in dark mode and reads as a harsh white line
-/// on the popover's vibrancy.
+/// The color is explicitly lighter than the `.separator` NSBox above/below the
+/// list — those act as section edges, and the row hairline should read as a
+/// quieter secondary rhythm, not compete with them.
 private final class HistorySeparatorRowView: NSTableRowView {
     var drawsBottomSeparator: Bool = true { didSet { needsDisplay = true } }
 
@@ -261,8 +271,27 @@ private final class HistorySeparatorRowView: NSTableRowView {
         super.draw(dirtyRect)
         guard drawsBottomSeparator else { return }
         let line = NSRect(x: 12, y: 0, width: bounds.width - 24, height: 0.5)
-        NSColor.quaternaryLabelColor.setFill()
+        NSColor.labelColor.withAlphaComponent(0.07).setFill()
         NSBezierPath(rect: line).fill()
+    }
+}
+
+/// NSSearchFieldCell subclass that paints a subtle translucent pill instead
+/// of the stock opaque white bezel. All other NSSearchFieldCell behavior
+/// (magnifier icon, clear button, placeholder layout) is inherited untouched.
+private final class SoftBezelSearchFieldCell: NSSearchFieldCell {
+    override func draw(withFrame cellFrame: NSRect, in controlView: NSView) {
+        if isBezeled {
+            let radius = min(cellFrame.height / 2, 8)
+            let path = NSBezierPath(roundedRect: cellFrame, xRadius: radius, yRadius: radius)
+            let isDark = controlView.effectiveAppearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil
+            let fill: NSColor = isDark
+                ? NSColor(white: 1, alpha: 0.08)
+                : NSColor(white: 0, alpha: 0.05)
+            fill.setFill()
+            path.fill()
+        }
+        drawInterior(withFrame: cellFrame, in: controlView)
     }
 }
 
