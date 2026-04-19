@@ -51,21 +51,6 @@ final class HistoryViewController: NSViewController {
         searchField.translatesAutoresizingMaskIntoConstraints = false
         searchField.target = self
         searchField.action = #selector(searchChanged)
-        // Drop the stock white bezel — it reads as an opaque card on top of
-        // the popover's vibrancy. Wrap the field in a subtle translucent pill
-        // that blends with the backdrop instead.
-        searchField.isBezeled = false
-        searchField.drawsBackground = false
-        searchField.focusRingType = .none
-        let searchBackground = TranslucentPillView()
-        searchBackground.translatesAutoresizingMaskIntoConstraints = false
-        searchBackground.addSubview(searchField)
-        NSLayoutConstraint.activate([
-            searchField.leadingAnchor.constraint(equalTo: searchBackground.leadingAnchor, constant: 4),
-            searchField.trailingAnchor.constraint(equalTo: searchBackground.trailingAnchor, constant: -4),
-            searchField.topAnchor.constraint(equalTo: searchBackground.topAnchor, constant: 3),
-            searchField.bottomAnchor.constraint(equalTo: searchBackground.bottomAnchor, constant: -3),
-        ])
 
         tableView = NSTableView()
         tableView.headerView = nil
@@ -122,7 +107,7 @@ final class HistoryViewController: NSViewController {
         footer.spacing = 8
         footer.translatesAutoresizingMaskIntoConstraints = false
 
-        view.addSubview(searchBackground)
+        view.addSubview(searchField)
         view.addSubview(topDivider)
         view.addSubview(scrollView)
         view.addSubview(emptyLabel)
@@ -130,11 +115,11 @@ final class HistoryViewController: NSViewController {
         view.addSubview(footer)
 
         NSLayoutConstraint.activate([
-            searchBackground.topAnchor.constraint(equalTo: view.topAnchor, constant: 8),
-            searchBackground.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
-            searchBackground.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
+            searchField.topAnchor.constraint(equalTo: view.topAnchor, constant: 8),
+            searchField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
+            searchField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
 
-            topDivider.topAnchor.constraint(equalTo: searchBackground.bottomAnchor, constant: 8),
+            topDivider.topAnchor.constraint(equalTo: searchField.bottomAnchor, constant: 8),
             topDivider.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             topDivider.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             topDivider.heightAnchor.constraint(equalToConstant: 1),
@@ -264,37 +249,11 @@ extension HistoryViewController: NSTableViewDataSource, NSTableViewDelegate {
     }
 }
 
-// MARK: - Row & search-field chrome
-
-/// Translucent rounded-rect background that tracks light/dark appearance.
-/// Used to host the NSSearchField now that its native white bezel is off.
-private final class TranslucentPillView: NSView {
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-        wantsLayer = true
-        layer?.cornerRadius = 7
-        layer?.cornerCurve = .continuous
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
-
-    override func updateLayer() {
-        super.updateLayer()
-        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil
-        layer?.backgroundColor = (isDark
-            ? NSColor(white: 1, alpha: 0.08)
-            : NSColor(white: 0, alpha: 0.06)).cgColor
-    }
-
-    override func viewDidChangeEffectiveAppearance() {
-        super.viewDidChangeEffectiveAppearance()
-        needsDisplay = true
-    }
-}
-
 /// Row view that paints a hairline divider under each row except the last,
 /// so scrolling through history reads as a list instead of one opaque block.
+/// Uses `quaternaryLabelColor` rather than `separatorColor` — the latter
+/// resolves to near-opaque white in dark mode and reads as a harsh white line
+/// on the popover's vibrancy.
 private final class HistorySeparatorRowView: NSTableRowView {
     var drawsBottomSeparator: Bool = true { didSet { needsDisplay = true } }
 
@@ -302,7 +261,7 @@ private final class HistorySeparatorRowView: NSTableRowView {
         super.draw(dirtyRect)
         guard drawsBottomSeparator else { return }
         let line = NSRect(x: 12, y: 0, width: bounds.width - 24, height: 0.5)
-        NSColor.separatorColor.setFill()
+        NSColor.quaternaryLabelColor.setFill()
         NSBezierPath(rect: line).fill()
     }
 }
