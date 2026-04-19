@@ -44,6 +44,7 @@ final class TranslationViewController: NSViewController {
     private var outputTextView: GrowingTextView!
     private var outputBodySlot: NSView!
     private var errorLabel: NSTextField!
+    private var errorContainer: NSView!
     private var progressIndicator: NSProgressIndicator!
     private var langPackHintView: NSView!
 
@@ -268,6 +269,18 @@ final class TranslationViewController: NSViewController {
         errorLabel.maximumNumberOfLines = 0
         errorLabel.translatesAutoresizingMaskIntoConstraints = false
 
+        // Wrap the error label with the same visual inset as the text view so
+        // error messages line up with regular translation output.
+        errorContainer = NSView()
+        errorContainer.translatesAutoresizingMaskIntoConstraints = false
+        errorContainer.addSubview(errorLabel)
+        NSLayoutConstraint.activate([
+            errorLabel.leadingAnchor.constraint(equalTo: errorContainer.leadingAnchor, constant: 12),
+            errorLabel.trailingAnchor.constraint(equalTo: errorContainer.trailingAnchor, constant: -12),
+            errorLabel.topAnchor.constraint(equalTo: errorContainer.topAnchor, constant: 6),
+            errorLabel.bottomAnchor.constraint(equalTo: errorContainer.bottomAnchor, constant: -6),
+        ])
+
         langPackHintView = makeLangPackHintView()
         langPackHintView.translatesAutoresizingMaskIntoConstraints = false
 
@@ -313,7 +326,22 @@ final class TranslationViewController: NSViewController {
         stack.orientation = .horizontal
         stack.alignment = .firstBaseline
         stack.spacing = 6
-        return stack
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        // Mirror the text view's visual inset (textContainerInset 8 + line
+        // fragment padding 4 = 12pt horizontal, 6pt vertical) so the hint's
+        // leading edge lines up with translation output text instead of
+        // hugging the panel edge.
+        let wrapper = NSView()
+        wrapper.translatesAutoresizingMaskIntoConstraints = false
+        wrapper.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 12),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: wrapper.trailingAnchor, constant: -12),
+            stack.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 6),
+            stack.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -6),
+        ])
+        return wrapper
     }
 
     // MARK: - Buttons / helpers
@@ -488,7 +516,7 @@ final class TranslationViewController: NSViewController {
                 restingBody = langPackHintView
             default:
                 errorLabel.stringValue = error.localizedMessage
-                restingBody = errorLabel
+                restingBody = errorContainer
             }
         } else {
             restingBody = outputTextView
