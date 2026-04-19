@@ -637,7 +637,12 @@ private final class HistoryRowCell: NSTableCellView {
             : String(localized: "Favorite")
         favoriteButton.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: tooltip)?
             .withSymbolConfiguration(iconConfig)
-        favoriteButton.contentTintColor = favorited ? .secondaryLabelColor : .tertiaryLabelColor
+        // Favorited star uses `.systemYellow` — the universal "saved / starred"
+        // hue across macOS (Mail flags, Reminders, Xcode breakpoints). Picking
+        // a label-color instead would fill the glyph near-black in light mode,
+        // which reads as grimy rather than celebratory. Unfavorited stays on
+        // the same tertiary grey as the adjacent delete button.
+        favoriteButton.contentTintColor = favorited ? .systemYellow : .tertiaryLabelColor
         favoriteButton.toolTip = tooltip
     }
 
