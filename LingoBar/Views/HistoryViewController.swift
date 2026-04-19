@@ -276,8 +276,24 @@ final class SearchPillField: NSView, NSTextFieldDelegate {
     var onTextChange: ((String) -> Void)?
 
     var placeholderString: String? {
-        get { textField.placeholderString }
-        set { textField.placeholderString = newValue }
+        get { textField.placeholderAttributedString?.string ?? textField.placeholderString }
+        set {
+            guard let s = newValue else {
+                textField.placeholderAttributedString = nil
+                textField.placeholderString = nil
+                return
+            }
+            // Default NSTextField placeholder renders in `secondaryLabelColor`.
+            // Step it down to `tertiaryLabelColor` so the hint stays visibly
+            // placeholder-y and doesn't compete with live text.
+            textField.placeholderAttributedString = NSAttributedString(
+                string: s,
+                attributes: [
+                    .foregroundColor: NSColor.tertiaryLabelColor,
+                    .font: NSFont.systemFont(ofSize: NSFont.systemFontSize),
+                ]
+            )
+        }
     }
 
     var stringValue: String {
