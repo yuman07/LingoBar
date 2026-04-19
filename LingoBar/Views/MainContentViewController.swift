@@ -4,7 +4,7 @@ import Combine
 final class MainContentViewController: NSViewController {
     var onPreferredSizeChange: ((NSSize) -> Void)?
 
-    private var segmented: NSSegmentedControl!
+    private var segmented: ModernSegmentedControl!
     private var tabBar: NSStackView!
     private var divider: NSBox!
     private var containerView: NSView!
@@ -56,17 +56,18 @@ final class MainContentViewController: NSViewController {
     // MARK: - Layout
 
     private func buildLayout() {
-        segmented = NSSegmentedControl(labels: [
+        segmented = ModernSegmentedControl(labels: [
             String(localized: "Translate"),
             String(localized: "History"),
             String(localized: "Settings"),
-        ], trackingMode: .selectOne, target: self, action: #selector(tabChanged))
+        ])
         segmented.selectedSegment = 0
-        segmented.segmentStyle = .texturedSquare
+        segmented.onSelectionChange = { [weak self] _ in self?.tabChanged() }
         segmented.translatesAutoresizingMaskIntoConstraints = false
 
-        tabBar = NSStackView(views: [segmented, NSView()])
+        tabBar = NSStackView(views: [segmented])
         tabBar.orientation = .horizontal
+        tabBar.distribution = .fill
         tabBar.translatesAutoresizingMaskIntoConstraints = false
 
         divider = NSBox()
@@ -161,5 +162,161 @@ final class MainContentViewController: NSViewController {
             child.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
         ])
         view.needsLayout = true
+    }
+}
+
+// MARK: - Modern segmented control
+
+/// Pill-style segmented control that mimics the look of a SwiftUI
+/// `Picker(...).pickerStyle(.segmented)` on iOS 15+ / macOS 13+:
+/// rounded translucent track, floating selection bubble with soft shadow,
+/// selected-label weight bump, light/dark-aware colors.
+///
+/// Built as a plain NSView subclass so we stay in AppKit.
+final class ModernSegmentedControl: NSView {
+    var onSelectionChange: ((Int) -> Void)?
+
+    var selectedSegment: Int = 0 {
+        didSet {
+            guard oldValue != selectedSegment else { return }
+            updateSelection(animated: true)
+        }
+    }
+
+    private let labels: [String]
+    private var segments: [SegmentCell] = []
+    private let selectionView = NSView()
+
+    init(labels: [String]) {
+        self.labels = labels
+        super.init(frame: .zero)
+        wantsLayer = true
+        layer?.cornerRadius = 7
+        layer?.cornerCurve = .continuous
+
+        selectionView.wantsLayer = true
+        selectionView.layer?.cornerRadius = 5
+        selectionView.layer?.cornerCurve = .continuous
+        selectionView.layer?.shadowOpacity = 0.12
+        selectionView.layer?.shadowRadius = 2
+        selectionView.layer?.shadowOffset = CGSize(width: 0, height: -0.5)
+        selectionView.layer?.shadowColor = NSColor.black.cgColor
+        addSubview(selectionView)
+
+        for (i, label) in labels.enumerated() {
+            let cell = SegmentCell()
+            cell.title = label
+            cell.onClick = { [weak self] in self?.handleTap(index: i) }
+            addSubview(cell)
+            segments.append(cell)
+        }
+
+        segments.first?.isSelected = true
+        updateColors()
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
+
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: NSView.noIntrinsicMetric, height: 24)
+    }
+
+    override var allowsVibrancy: Bool { false }
+
+    override func layout() {
+        super.layout()
+        guard !segments.isEmpty, bounds.width > 0 else { return }
+        let count = CGFloat(segments.count)
+        let segWidth = bounds.width / count
+        for (i, cell) in segments.enumerated() {
+            cell.frame = NSRect(x: CGFloat(i) * segWidth, y: 0, width: segWidth, height: bounds.height)
+        }
+        updateSelection(animated: false)
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateColors()
+    }
+
+    private func handleTap(index: Int) {
+        guard index != selectedSegment else { return }
+        selectedSegment = index
+        onSelectionChange?(index)
+    }
+
+    private func updateSelection(animated: Bool) {
+        guard !segments.isEmpty, bounds.width > 0 else { return }
+        let count = CGFloat(segments.count)
+        let segWidth = bounds.width / count
+        let inset: CGFloat = 2
+        let target = NSRect(
+            x: CGFloat(selectedSegment) * segWidth + inset,
+            y: inset,
+            width: segWidth - inset * 2,
+            height: bounds.height - inset * 2
+        )
+        if animated {
+            NSAnimationContext.runAnimationGroup { ctx in
+                ctx.duration = 0.2
+                ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                ctx.allowsImplicitAnimation = true
+                selectionView.animator().frame = target
+            }
+        } else {
+            selectionView.frame = target
+        }
+        for (i, cell) in segments.enumerated() {
+            cell.isSelected = (i == selectedSegment)
+        }
+    }
+
+    private func updateColors() {
+        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil
+        layer?.backgroundColor = (isDark
+            ? NSColor(white: 1, alpha: 0.08)
+            : NSColor(white: 0, alpha: 0.06)).cgColor
+        selectionView.layer?.backgroundColor = (isDark
+            ? NSColor(white: 1, alpha: 0.18)
+            : NSColor.white).cgColor
+    }
+}
+
+/// One segment label — draws its own text and forwards clicks.
+private final class SegmentCell: NSView {
+    var title: String = "" { didSet { needsDisplay = true } }
+    var isSelected: Bool = false { didSet { needsDisplay = true } }
+    var onClick: (() -> Void)?
+
+    override var acceptsFirstResponder: Bool { false }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func mouseDown(with event: NSEvent) {
+        var keepOn = true
+        while keepOn, let next = window?.nextEvent(matching: [.leftMouseUp, .leftMouseDragged]) {
+            if next.type == .leftMouseUp {
+                let p = convert(next.locationInWindow, from: nil)
+                if bounds.contains(p) { onClick?() }
+                keepOn = false
+            }
+        }
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .center
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 12, weight: isSelected ? .semibold : .medium),
+            .foregroundColor: NSColor.labelColor,
+            .paragraphStyle: paragraph,
+        ]
+        let textSize = (title as NSString).size(withAttributes: attrs)
+        let rect = NSRect(
+            x: 0,
+            y: (bounds.height - textSize.height) / 2,
+            width: bounds.width,
+            height: textSize.height
+        )
+        (title as NSString).draw(in: rect, withAttributes: attrs)
     }
 }
