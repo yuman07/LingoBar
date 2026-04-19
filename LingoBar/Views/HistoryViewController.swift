@@ -1,4 +1,5 @@
 import AppKit
+import ObjectiveC.runtime
 import SwiftData
 
 final class HistoryViewController: NSViewController {
@@ -46,18 +47,17 @@ final class HistoryViewController: NSViewController {
     // MARK: - Layout
 
     private func buildLayout() {
-        // Swap in a cell that overrides drawBezel to paint a subtle translucent
-        // pill. Keeps NSSearchFieldCell's magnifier + clear-button plumbing
-        // intact; only the fill color changes, so the search field stops
-        // reading as a stark white card pasted on the popover's vibrancy.
+        // Repaint only the bezel of the stock NSSearchFieldCell so the field
+        // stops reading as a bright white card on the popover's vibrancy.
+        // Use `object_setClass` rather than replacing the cell instance, so
+        // NSSearchField's internal setup (search + cancel button cells, field
+        // editor hookup, click handling) stays intact and the field keeps
+        // accepting focus and text input normally.
         searchField = NSSearchField()
-        let searchCell = SoftBezelSearchFieldCell(textCell: "")
-        searchCell.placeholderString = String(localized: "Search history…")
-        searchCell.isBezeled = true
-        searchCell.bezelStyle = .roundedBezel
-        searchCell.focusRingType = .default
-        searchCell.isScrollable = true
-        searchField.cell = searchCell
+        if let cell = searchField.cell {
+            object_setClass(cell, SoftBezelSearchFieldCell.self)
+        }
+        searchField.placeholderString = String(localized: "Search history…")
         searchField.translatesAutoresizingMaskIntoConstraints = false
         searchField.target = self
         searchField.action = #selector(searchChanged)
@@ -282,7 +282,9 @@ private final class HistorySeparatorRowView: NSTableRowView {
 private final class SoftBezelSearchFieldCell: NSSearchFieldCell {
     override func draw(withFrame cellFrame: NSRect, in controlView: NSView) {
         if isBezeled {
-            let radius = min(cellFrame.height / 2, 8)
+            // Match the stock rounded-bezel corner radius (pill shape) so the
+            // silhouette is identical to before; only the fill color changes.
+            let radius = cellFrame.height / 2
             let path = NSBezierPath(roundedRect: cellFrame, xRadius: radius, yRadius: radius)
             let isDark = controlView.effectiveAppearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil
             let fill: NSColor = isDark
