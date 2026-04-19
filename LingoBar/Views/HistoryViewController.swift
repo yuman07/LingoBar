@@ -1,9 +1,8 @@
 import AppKit
-import ObjectiveC.runtime
 import SwiftData
 
 final class HistoryViewController: NSViewController {
-    private var searchField: NSSearchField!
+    private var searchField: SearchPillField!
     private var tableView: NSTableView!
     private var scrollView: NSScrollView!
     private var emptyLabel: NSTextField!
@@ -47,20 +46,18 @@ final class HistoryViewController: NSViewController {
     // MARK: - Layout
 
     private func buildLayout() {
-        // Repaint only the bezel of the stock NSSearchFieldCell so the field
-        // stops reading as a bright white card on the popover's vibrancy.
-        // Use `object_setClass` rather than replacing the cell instance, so
-        // NSSearchField's internal setup (search + cancel button cells, field
-        // editor hookup, click handling) stays intact and the field keeps
-        // accepting focus and text input normally.
-        searchField = NSSearchField()
-        if let cell = searchField.cell {
-            object_setClass(cell, SoftBezelSearchFieldCell.self)
-        }
+        // NSSearchField's bezel is drawn outside NSCell.draw on modern macOS,
+        // so overriding the cell's draw methods doesn't intercept the white
+        // pill. Instead, roll our own pill: translucent rounded background,
+        // magnifier glyph, borderless NSTextField for input. Same silhouette
+        // as the stock search field, but the fill blends with the popover's
+        // vibrancy material instead of reading as a bright white card.
+        searchField = SearchPillField()
         searchField.placeholderString = String(localized: "Search history…")
         searchField.translatesAutoresizingMaskIntoConstraints = false
-        searchField.target = self
-        searchField.action = #selector(searchChanged)
+        searchField.onTextChange = { [weak self] text in
+            self?.searchText = text
+        }
 
         tableView = NSTableView()
         tableView.headerView = nil
@@ -195,10 +192,6 @@ final class HistoryViewController: NSViewController {
 
     // MARK: - Actions
 
-    @objc private func searchChanged() {
-        searchText = searchField.stringValue
-    }
-
     @objc private func rowDoubleClicked() {
         fillFromSelectedRow()
     }
@@ -276,24 +269,82 @@ private final class HistorySeparatorRowView: NSTableRowView {
     }
 }
 
-/// NSSearchFieldCell subclass that paints a subtle translucent pill instead
-/// of the stock opaque white bezel. All other NSSearchFieldCell behavior
-/// (magnifier icon, clear button, placeholder layout) is inherited untouched.
-private final class SoftBezelSearchFieldCell: NSSearchFieldCell {
-    override func draw(withFrame cellFrame: NSRect, in controlView: NSView) {
-        if isBezeled {
-            // Match the stock rounded-bezel corner radius (pill shape) so the
-            // silhouette is identical to before; only the fill color changes.
-            let radius = cellFrame.height / 2
-            let path = NSBezierPath(roundedRect: cellFrame, xRadius: radius, yRadius: radius)
-            let isDark = controlView.effectiveAppearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil
-            let fill: NSColor = isDark
-                ? NSColor(white: 1, alpha: 0.08)
-                : NSColor(white: 0, alpha: 0.05)
-            fill.setFill()
-            path.fill()
-        }
-        drawInterior(withFrame: cellFrame, in: controlView)
+/// Search-field stand-in: translucent rounded pill + magnifier glyph + a
+/// borderless NSTextField. Same silhouette as `NSSearchField` but the fill
+/// blends with the popover's vibrancy instead of drawing an opaque white card.
+final class SearchPillField: NSView, NSTextFieldDelegate {
+    var onTextChange: ((String) -> Void)?
+
+    var placeholderString: String? {
+        get { textField.placeholderString }
+        set { textField.placeholderString = newValue }
+    }
+
+    var stringValue: String {
+        get { textField.stringValue }
+        set { textField.stringValue = newValue }
+    }
+
+    private let textField = NSTextField()
+    private let icon = NSImageView()
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        layer?.cornerRadius = 11
+        layer?.cornerCurve = .continuous
+
+        icon.image = NSImage(systemSymbolName: "magnifyingglass", accessibilityDescription: nil)
+        icon.contentTintColor = .secondaryLabelColor
+        icon.symbolConfiguration = .init(pointSize: 12, weight: .regular)
+        icon.translatesAutoresizingMaskIntoConstraints = false
+
+        textField.isBordered = false
+        textField.drawsBackground = false
+        textField.focusRingType = .none
+        textField.font = .systemFont(ofSize: NSFont.systemFontSize)
+        textField.delegate = self
+        textField.translatesAutoresizingMaskIntoConstraints = false
+
+        addSubview(icon)
+        addSubview(textField)
+
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 22),
+            icon.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
+            icon.centerYAnchor.constraint(equalTo: centerYAnchor),
+            icon.widthAnchor.constraint(equalToConstant: 14),
+            icon.heightAnchor.constraint(equalToConstant: 14),
+            textField.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 4),
+            textField.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
+            textField.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func updateLayer() {
+        super.updateLayer()
+        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil
+        layer?.backgroundColor = (isDark
+            ? NSColor(white: 1, alpha: 0.08)
+            : NSColor(white: 0, alpha: 0.05)).cgColor
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
+    /// Clicking on the pill's background (outside the text field proper) should
+    /// still focus the input, the way the native search-field bezel behaves.
+    override func mouseDown(with event: NSEvent) {
+        window?.makeFirstResponder(textField)
+    }
+
+    func controlTextDidChange(_ notification: Notification) {
+        onTextChange?(textField.stringValue)
     }
 }
 
