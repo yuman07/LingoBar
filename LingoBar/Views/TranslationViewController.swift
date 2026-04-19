@@ -327,8 +327,9 @@ final class TranslationViewController: NSViewController {
                 }
                 self.inputCopyButton.isEnabled = !text.isEmpty
                 self.inputSpeakButton.isEnabled = !text.isEmpty
-                self.updateClearButtonState()
-                // @Published publishes in willSet; defer so appState.inputText is the new value
+                // @Published fires in willSet, so appState.inputText is still the old value here —
+                // pass the fresh text through to avoid a stale read.
+                self.updateClearButtonState(input: text)
                 DispatchQueue.main.async { [weak self] in
                     guard let self else { return }
                     self.manager.translateWithDebounce(appState: self.appState)
@@ -345,7 +346,7 @@ final class TranslationViewController: NSViewController {
                 }
                 self.outputCopyButton.isEnabled = !text.isEmpty
                 self.outputSpeakButton.isEnabled = !text.isEmpty
-                self.updateClearButtonState()
+                self.updateClearButtonState(output: text)
                 self.updateOutputVisibility()
             }
             .store(in: &cancellables)
@@ -423,8 +424,10 @@ final class TranslationViewController: NSViewController {
         updateClearButtonState()
     }
 
-    private func updateClearButtonState() {
-        inputClearButton.isEnabled = !appState.inputText.isEmpty || !appState.outputText.isEmpty
+    private func updateClearButtonState(input: String? = nil, output: String? = nil) {
+        let hasInput = !(input ?? appState.inputText).isEmpty
+        let hasOutput = !(output ?? appState.outputText).isEmpty
+        inputClearButton.isEnabled = hasInput || hasOutput
     }
 
     private func clearAll() {
@@ -630,8 +633,11 @@ final class CopyFeedbackButton: NSButton {
     }
 
     private func showCheckmark() {
-        image = checkImage
-        contentTintColor = .systemGreen
+        // Render the filled circle in green with a white check so the glyph carries its own
+        // contrast instead of relying on the panel background.
+        let config = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
+            .applying(.init(paletteColors: [.white, .systemGreen]))
+        image = checkImage?.withSymbolConfiguration(config)
         resetTask?.cancel()
         let task = DispatchWorkItem { [weak self] in
             self?.image = self?.copyImage
