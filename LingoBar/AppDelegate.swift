@@ -34,7 +34,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         env.modelContainer = container
         env.updaterController = updaterController
 
-        applyAppearance(settings.appearanceMode)
         installMainMenu()
 
         statusBarController = StatusBarController()
@@ -90,16 +89,4 @@ final class SharedEnvironment {
     var modelContainer: ModelContainer?
     var updaterController: SPUStandardUpdaterController?
     private init() {}
-}
-
-@MainActor
-func applyAppearance(_ mode: AppearanceMode) {
-    switch mode {
-    case .system:
-        NSApp.appearance = nil
-    case .light:
-        NSApp.appearance = NSAppearance(named: .aqua)
-    case .dark:
-        NSApp.appearance = NSAppearance(named: .darkAqua)
-    }
 }

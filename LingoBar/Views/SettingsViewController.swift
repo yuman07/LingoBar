@@ -8,7 +8,6 @@ final class SettingsViewController: NSViewController {
     private var contentStack: NSStackView!
 
     private var enginePopup: NSPopUpButton!
-    private var appearancePopup: NSPopUpButton!
     private var launchToggle: NSButton!
 
     private var retentionStepper: NSStepper!
@@ -96,20 +95,10 @@ final class SettingsViewController: NSViewController {
         enginePopup.target = self
         enginePopup.action = #selector(engineChanged)
 
-        appearancePopup = NSPopUpButton(frame: .zero, pullsDown: false)
-        for mode in AppearanceMode.allCases {
-            appearancePopup.addItem(withTitle: mode.displayName)
-            appearancePopup.lastItem?.representedObject = mode
-        }
-        appearancePopup.target = self
-        appearancePopup.action = #selector(appearanceChanged)
-        appearancePopup.selectItem(at: AppearanceMode.allCases.firstIndex(of: settings.appearanceMode) ?? 0)
-
         launchToggle = NSButton(checkboxWithTitle: "", target: self, action: #selector(launchToggled))
 
         let grid = gridView([
             [rowLabel(String(localized: "Translation Engine")), enginePopup],
-            [rowLabel(String(localized: "Appearance")), appearancePopup],
             [rowLabel(String(localized: "Launch at Login")), launchToggle],
         ])
         return section(header: String(localized: "General"), body: grid)
@@ -336,13 +325,6 @@ final class SettingsViewController: NSViewController {
     @objc private func engineChanged() {
         if let e = enginePopup.selectedItem?.representedObject as? TranslationEngineType {
             settings.selectedEngine = e
-        }
-    }
-
-    @objc private func appearanceChanged() {
-        if let mode = appearancePopup.selectedItem?.representedObject as? AppearanceMode {
-            settings.appearanceMode = mode
-            applyAppearance(mode)
         }
     }
 

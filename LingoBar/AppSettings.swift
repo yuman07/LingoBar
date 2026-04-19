@@ -1,22 +1,6 @@
 import Combine
 import Foundation
 
-enum AppearanceMode: String, CaseIterable, Codable, Sendable, Identifiable {
-    case system
-    case light
-    case dark
-
-    var id: String { rawValue }
-
-    var displayName: String {
-        switch self {
-        case .system: String(localized: "System")
-        case .light: String(localized: "Light")
-        case .dark: String(localized: "Dark")
-        }
-    }
-}
-
 extension Notification.Name {
     static let appSettingsDidChange = Notification.Name("LingoBar.appSettingsDidChange")
 }
@@ -53,13 +37,6 @@ final class AppSettings: ObservableObject {
         }
     }
 
-    @Published var appearanceMode: AppearanceMode {
-        didSet {
-            defaults.set(appearanceMode.rawValue, forKey: Keys.appearanceMode)
-            notify()
-        }
-    }
-
     @Published var failoverEnabled: Bool {
         didSet {
             defaults.set(failoverEnabled, forKey: Keys.failoverEnabled)
@@ -73,7 +50,6 @@ final class AppSettings: ObservableObject {
         contentRetentionSeconds = d.object(forKey: Keys.contentRetention) as? Int ?? 60
         sourceLanguage = SupportedLanguage(rawValue: d.string(forKey: Keys.sourceLanguage) ?? "") ?? .auto
         targetLanguage = SupportedLanguage(rawValue: d.string(forKey: Keys.targetLanguage) ?? "") ?? .english
-        appearanceMode = AppearanceMode(rawValue: d.string(forKey: Keys.appearanceMode) ?? "") ?? .system
         failoverEnabled = d.object(forKey: Keys.failoverEnabled) as? Bool ?? true
     }
 
@@ -96,7 +72,6 @@ final class AppSettings: ObservableObject {
         static let contentRetention = "contentRetention"
         static let sourceLanguage = "sourceLanguage"
         static let targetLanguage = "targetLanguage"
-        static let appearanceMode = "appearanceMode"
         static let failoverEnabled = "failoverEnabled"
     }
 }
