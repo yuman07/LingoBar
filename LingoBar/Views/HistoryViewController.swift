@@ -524,16 +524,19 @@ private final class HistoryRowCell: NSTableCellView {
 
         let iconConfig = NSImage.SymbolConfiguration(pointSize: 10, weight: .regular)
 
-        // Pin toggle. Starts as the outlined `pin` glyph in the same quiet
-        // quaternary tint as the delete button; once pinned the cell swaps in
-        // `pin.fill` and bumps the tint up to tertiary so the pinned state is
-        // readable at a glance without the control shouting for attention.
-        pinButton.image = NSImage(systemSymbolName: "pin", accessibilityDescription: String(localized: "Pin to top"))?
+        // Pin toggle. Uses `arrow.up.to.line` (move-to-top metaphor) instead of
+        // the `pin` family, because the Translate tab already spends `pin` /
+        // `pin.slash` / `pin.fill` on a different feature — keeping the panel
+        // open. A shared glyph across two unrelated affordances would be
+        // confusing. The pinned state is signalled by bumping the symbol to a
+        // bold weight and the tint one label-color step darker; no shape swap
+        // that would compete with the filled `xmark.circle.fill` next to it.
+        pinButton.image = NSImage(systemSymbolName: "arrow.up.to.line", accessibilityDescription: String(localized: "Pin to top"))?
             .withSymbolConfiguration(iconConfig)
         pinButton.imagePosition = .imageOnly
         pinButton.isBordered = false
         pinButton.bezelStyle = .shadowlessSquare
-        pinButton.contentTintColor = .quaternaryLabelColor
+        pinButton.contentTintColor = .tertiaryLabelColor
         pinButton.toolTip = String(localized: "Pin to top")
         pinButton.target = self
         pinButton.action = #selector(pinTapped)
@@ -543,14 +546,14 @@ private final class HistoryRowCell: NSTableCellView {
         // reads as a lightweight "remove this entry" affordance — distinct
         // from the `trash` glyph on the footer's "clear all" button, which
         // needs to feel heavier because it nukes everything. Sized down and
-        // tinted to a quaternary alpha so it sits as a quiet secondary
-        // control, not something that competes with the row's content.
+        // tinted to a tertiary alpha so it sits as a quiet secondary control,
+        // not something that competes with the row's content.
         deleteButton.image = NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: String(localized: "Delete"))?
             .withSymbolConfiguration(iconConfig)
         deleteButton.imagePosition = .imageOnly
         deleteButton.isBordered = false
         deleteButton.bezelStyle = .shadowlessSquare
-        deleteButton.contentTintColor = .quaternaryLabelColor
+        deleteButton.contentTintColor = .tertiaryLabelColor
         deleteButton.toolTip = String(localized: "Delete")
         deleteButton.target = self
         deleteButton.action = #selector(deleteTapped)
@@ -607,14 +610,13 @@ private final class HistoryRowCell: NSTableCellView {
     }
 
     func setPinned(_ pinned: Bool) {
-        let iconConfig = NSImage.SymbolConfiguration(pointSize: 10, weight: .regular)
-        let symbolName = pinned ? "pin.fill" : "pin"
+        let iconConfig = NSImage.SymbolConfiguration(pointSize: 10, weight: pinned ? .bold : .regular)
         let tooltip = pinned
             ? String(localized: "Unpin")
             : String(localized: "Pin to top")
-        pinButton.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: tooltip)?
+        pinButton.image = NSImage(systemSymbolName: "arrow.up.to.line", accessibilityDescription: tooltip)?
             .withSymbolConfiguration(iconConfig)
-        pinButton.contentTintColor = pinned ? .tertiaryLabelColor : .quaternaryLabelColor
+        pinButton.contentTintColor = pinned ? .secondaryLabelColor : .tertiaryLabelColor
         pinButton.toolTip = tooltip
     }
 
