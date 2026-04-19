@@ -17,6 +17,11 @@ final class StatusBarController {
     // handler (handler sees isShown=false and tries to reopen in the same
     // event cycle). A later click is a different event and proceeds.
     private var popoverAutoClosedEventTimestamp: TimeInterval?
+    // True between popoverWillClose and popoverDidClose. Calling show() during
+    // this window can fail silently, so we queue the show until didClose fires.
+    // Without this guard, rapid clicks during the close tail are dropped.
+    private var isPopoverClosing = false
+    private var pendingPopoverShow = false
 
     private var appState: AppState { SharedEnvironment.shared.appState! }
     private var appSettings: AppSettings { SharedEnvironment.shared.appSettings! }
@@ -57,9 +62,17 @@ final class StatusBarController {
                 // action handler fires for that same event, we know it's the
                 // transient auto-dismiss race and should not reopen.
                 self?.popoverAutoClosedEventTimestamp = NSApp.currentEvent?.timestamp
+                self?.isPopoverClosing = true
             },
             onDidClose: { [weak self] in
-                self?.windowDidClose()
+                guard let self else { return }
+                self.isPopoverClosing = false
+                if self.pendingPopoverShow {
+                    self.pendingPopoverShow = false
+                    self.openPopover()
+                    return
+                }
+                self.windowDidClose()
             }
         )
         popover.delegate = popoverDelegate
@@ -105,15 +118,30 @@ final class StatusBarController {
     }
 
     private func togglePopover() {
+        // Handle the close tail first. During mid-close (between willClose and
+        // didClose) `popover.isShown` can still read `true`, which would cause
+        // rapid clicks to repeatedly hit the `close()` branch below — making
+        // every click a no-op instead of toggling.
+        if isPopoverClosing {
+            // Same event as the transient auto-dismiss? Swallow the reopen.
+            if let closedTs = popoverAutoClosedEventTimestamp,
+               let currentTs = NSApp.currentEvent?.timestamp,
+               closedTs == currentTs {
+                popoverAutoClosedEventTimestamp = nil
+                return
+            }
+            // Different event → user wants it open. Defer to didClose.
+            popoverAutoClosedEventTimestamp = nil
+            pendingPopoverShow = true
+            return
+        }
+
         if popover.isShown {
             popover.close()
             return
         }
-        // Clicking the icon while the popover is open first triggers the
-        // transient auto-dismiss and *then* delivers the same click to the
-        // button. Swallow the reopen only for that exact event — any later
-        // click is a different NSEvent with a different timestamp and should
-        // open the popover normally.
+
+        // Close finished within this same event cycle (animates=false path).
         if let closedTs = popoverAutoClosedEventTimestamp,
            let currentTs = NSApp.currentEvent?.timestamp,
            closedTs == currentTs {
@@ -121,6 +149,10 @@ final class StatusBarController {
             return
         }
         popoverAutoClosedEventTimestamp = nil
+        openPopover()
+    }
+
+    private func openPopover() {
         windowWillOpen()
         guard let button = statusItem?.button else { return }
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
