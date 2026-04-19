@@ -259,8 +259,8 @@ final class TranslationManager {
             // Only unfavorited records count toward the cap: a favorite means
             // "keep this around", so letting the trim evict old favorites
             // would silently break the promise the user made when they
-            // starred the row. (`pinnedAt` is the legacy schema name.)
-            let trimmable = allRecords.filter { $0.pinnedAt == nil }
+            // starred the row.
+            let trimmable = allRecords.filter { $0.favoritedAt == nil }
             if trimmable.count > historyLimit {
                 for record in trimmable.suffix(from: historyLimit) {
                     context.delete(record)

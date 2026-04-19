@@ -9,7 +9,12 @@ final class TranslationRecord {
     var targetLanguage: String
     var engineType: String
     var timestamp: Date
-    var pinnedAt: Date?
+    /// Timestamp when the user favorited this record. Nil for unfavorited rows.
+    /// `originalName` preserves data from the earlier "pinnedAt" field name via
+    /// SwiftData's lightweight rename migration — no data loss when the store
+    /// upgrades.
+    @Attribute(originalName: "pinnedAt")
+    var favoritedAt: Date?
 
     init(
         sourceText: String,
@@ -24,7 +29,7 @@ final class TranslationRecord {
         self.targetLanguage = targetLanguage.rawValue
         self.engineType = engineType.rawValue
         self.timestamp = Date()
-        self.pinnedAt = nil
+        self.favoritedAt = nil
     }
 
     var engine: TranslationEngineType {

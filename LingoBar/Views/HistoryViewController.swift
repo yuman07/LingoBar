@@ -180,12 +180,11 @@ final class HistoryViewController: NSViewController {
         // Favorited rows float to the top in favorited-at ascending order
         // (earlier favorites above later ones, per product spec). Unfavorited
         // rows follow in the default timestamp-descending order from the
-        // fetch. `pinnedAt` is the SwiftData field name (kept for schema
-        // compatibility — the feature is user-facing "favorite").
+        // fetch.
         let favorited = fetched
-            .filter { $0.pinnedAt != nil }
-            .sorted { ($0.pinnedAt ?? .distantPast) < ($1.pinnedAt ?? .distantPast) }
-        let unfavorited = fetched.filter { $0.pinnedAt == nil }
+            .filter { $0.favoritedAt != nil }
+            .sorted { ($0.favoritedAt ?? .distantPast) < ($1.favoritedAt ?? .distantPast) }
+        let unfavorited = fetched.filter { $0.favoritedAt == nil }
         allRecords = favorited + unfavorited
         applyFilter()
     }
@@ -210,7 +209,7 @@ final class HistoryViewController: NSViewController {
         // record is favorited the button would be a visible no-op — hide it
         // in that state (and when the list is empty) to match the affordance
         // to what it actually does.
-        clearAllButton.isHidden = !allRecords.contains { $0.pinnedAt == nil }
+        clearAllButton.isHidden = !allRecords.contains { $0.favoritedAt == nil }
     }
 
     // MARK: - Actions
@@ -228,7 +227,7 @@ final class HistoryViewController: NSViewController {
     }
 
     @objc private func clearAll() {
-        for record in allRecords where record.pinnedAt == nil {
+        for record in allRecords where record.favoritedAt == nil {
             modelContext.delete(record)
         }
         try? modelContext.save()
@@ -241,7 +240,7 @@ final class HistoryViewController: NSViewController {
     /// is opened (or otherwise refreshed via `viewWillAppear` /
     /// `translationHistoryDidChange`). The cell updates its own star glyph.
     private func toggleFavorite(_ record: TranslationRecord) {
-        record.pinnedAt = record.pinnedAt == nil ? Date() : nil
+        record.favoritedAt = record.favoritedAt == nil ? Date() : nil
         try? modelContext.save()
     }
 
@@ -293,7 +292,7 @@ extension HistoryViewController: NSTableViewDataSource, NSTableViewDelegate {
             guard idx >= 0, idx < self.filteredRecords.count else { return }
             let record = self.filteredRecords[idx]
             self.toggleFavorite(record)
-            cell.setFavorited(record.pinnedAt != nil)
+            cell.setFavorited(record.favoritedAt != nil)
         }
         return cell
     }
@@ -503,8 +502,8 @@ private final class HistoryRowCell: NSTableCellView {
     private let engineIcon = NSImageView()
     private let engineLabel = NSTextField(labelWithString: "")
     private let timeLabel = NSTextField(labelWithString: "")
-    private let favoriteButton = NSButton()
-    private let deleteButton = NSButton()
+    private let favoriteButton = HistoryIconButton()
+    private let deleteButton = HistoryIconButton()
 
     var onDelete: (() -> Void)?
     var onFavoriteToggle: (() -> Void)?
@@ -627,7 +626,7 @@ private final class HistoryRowCell: NSTableCellView {
         engineIcon.image = NSImage(systemSymbolName: record.engine.iconName, accessibilityDescription: nil)
         engineLabel.stringValue = record.engine.displayName
         timeLabel.stringValue = Self.relativeFormatter.localizedString(for: record.timestamp, relativeTo: Date())
-        setFavorited(record.pinnedAt != nil)
+        setFavorited(record.favoritedAt != nil)
     }
 
     func setFavorited(_ favorited: Bool) {
@@ -655,4 +654,68 @@ private final class HistoryRowCell: NSTableCellView {
         f.unitsStyle = .abbreviated
         return f
     }()
+}
+
+/// Borderless NSButton variant for history-row action icons.
+///
+/// Fixes two issues specific to this context:
+/// 1. **No dark "pressed" flash.** A stock borderless NSButton with a
+///    template image goes to a near-black tint for the duration of the mouse
+///    press — it fights the custom `contentTintColor` we set per state and
+///    reads as a glitch on a subtle tertiary glyph. Clearing `highlightsBy`
+///    on the cell disables the whole highlight pipeline.
+/// 2. **Spring-scale pulse on action.** A tiny scale bounce on each click
+///    gives the button some haptic-adjacent feedback — without it, tapping
+///    a row's star or delete glyph feels dead because the visual state
+///    change (e.g. star → star.fill) happens out of sight on the right edge.
+///    Anchor point is recentered on layout so the scale pulses in place
+///    instead of squishing toward the view's bottom-left.
+private final class HistoryIconButton: NSButton {
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        commonInit()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    private func commonInit() {
+        (cell as? NSButtonCell)?.highlightsBy = []
+        wantsLayer = true
+    }
+
+    override func layout() {
+        super.layout()
+        centerAnchorPoint()
+    }
+
+    private func centerAnchorPoint() {
+        guard let layer else { return }
+        let target = CGPoint(x: 0.5, y: 0.5)
+        guard layer.anchorPoint != target else { return }
+        let b = layer.bounds
+        layer.position = CGPoint(
+            x: layer.position.x + b.width * (target.x - layer.anchorPoint.x),
+            y: layer.position.y + b.height * (target.y - layer.anchorPoint.y)
+        )
+        layer.anchorPoint = target
+    }
+
+    override func sendAction(_ action: Selector?, to target: Any?) -> Bool {
+        playPulse()
+        return super.sendAction(action, to: target)
+    }
+
+    private func playPulse() {
+        centerAnchorPoint()
+        guard let layer else { return }
+        let bounce = CASpringAnimation(keyPath: "transform.scale")
+        bounce.fromValue = 0.7
+        bounce.toValue = 1.0
+        bounce.damping = 10
+        bounce.stiffness = 380
+        bounce.mass = 0.55
+        bounce.duration = bounce.settlingDuration
+        layer.add(bounce, forKey: "pulse")
+    }
 }
