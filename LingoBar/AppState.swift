@@ -16,6 +16,7 @@ final class AppState: ObservableObject {
     enum Tab: Sendable {
         case translate
         case history
+        case settings
     }
 
     func clearContent() {

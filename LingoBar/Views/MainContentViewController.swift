@@ -10,6 +10,7 @@ final class MainContentViewController: NSViewController {
     private var containerView: NSView!
     private let translationVC = TranslationViewController()
     private let historyVC = HistoryViewController()
+    private let settingsVC = SettingsViewController()
     private var cancellables: Set<AnyCancellable> = []
     private var lastReportedSize: NSSize = .zero
 
@@ -26,6 +27,7 @@ final class MainContentViewController: NSViewController {
         super.viewDidLoad()
         addChild(translationVC)
         addChild(historyVC)
+        addChild(settingsVC)
         showTranslate()
 
         appState.$activeTab
@@ -57,6 +59,7 @@ final class MainContentViewController: NSViewController {
         segmented = NSSegmentedControl(labels: [
             String(localized: "Translate"),
             String(localized: "History"),
+            String(localized: "Settings"),
         ], trackingMode: .selectOne, target: self, action: #selector(tabChanged))
         segmented.selectedSegment = 0
         segmented.segmentStyle = .texturedSquare
@@ -112,7 +115,12 @@ final class MainContentViewController: NSViewController {
     // MARK: - Tabs
 
     @objc private func tabChanged() {
-        let tab: AppState.Tab = segmented.selectedSegment == 0 ? .translate : .history
+        let tab: AppState.Tab
+        switch segmented.selectedSegment {
+        case 1: tab = .history
+        case 2: tab = .settings
+        default: tab = .translate
+        }
         appState.activeTab = tab
     }
 
@@ -124,6 +132,9 @@ final class MainContentViewController: NSViewController {
         case .history:
             segmented.selectedSegment = 1
             showHistory()
+        case .settings:
+            segmented.selectedSegment = 2
+            showSettings()
         }
     }
 
@@ -133,6 +144,10 @@ final class MainContentViewController: NSViewController {
 
     private func showHistory() {
         swap(to: historyVC.view)
+    }
+
+    private func showSettings() {
+        swap(to: settingsVC.view)
     }
 
     private func swap(to child: NSView) {

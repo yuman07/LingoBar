@@ -9,7 +9,6 @@ final class StatusBarController {
     private let statusPanelContentVC = MainContentViewController()
     private var panel: TranslationPanel?
     private var panelContentVC: MainContentViewController?
-    private var settingsWindowController: SettingsWindowController?
     private var retentionTask: Task<Void, Never>?
     // Timestamp of the NSEvent that caused the last resign-key auto-close.
     // If the status-bar button's action handler fires for the same event, we
@@ -197,15 +196,12 @@ final class StatusBarController {
     // MARK: - Menu Actions
 
     @objc private func openSettings() {
-        if let settingsWindowController, let window = settingsWindowController.window, window.isVisible {
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+        appState.activeTab = .settings
+        if let panel = statusPanel, panel.isVisible {
+            panel.makeKeyAndOrderFront(nil)
             return
         }
-        let controller = SettingsWindowController()
-        settingsWindowController = controller
-        controller.showWindow(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        openStatusPanel()
     }
 
     @objc private func checkForUpdates() {

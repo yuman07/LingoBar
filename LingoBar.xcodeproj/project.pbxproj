@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0EFCDDA2BB6FCADEEA20F0C7 /* GoogleTranslationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A4AB511711FCAE808F40CE2 /* GoogleTranslationEngine.swift */; };
-		22F21DC20CE4BC72D001AC36 /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E5537D336DEEC1B936D96B3 /* SettingsWindowController.swift */; };
+		22F21DC20CE4BC72D001AC36 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E5537D336DEEC1B936D96B3 /* SettingsViewController.swift */; };
 		28C3410287B81DBFA72435D1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0150D98D6B12EB86FB0410CB /* Assets.xcassets */; };
 		2BFE506EC0C5EC6DE7D4F141 /* TTSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F09A0C8C82FB162A76693446 /* TTSService.swift */; };
 		35B385153EA954CB677174EA /* KeyboardShortcutNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79C8E094A76B63C6091A3590 /* KeyboardShortcutNames.swift */; };
@@ -41,7 +41,7 @@
 
 /* Begin PBXFileReference section */
 		0150D98D6B12EB86FB0410CB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		1E5537D336DEEC1B936D96B3 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
+		1E5537D336DEEC1B936D96B3 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		268671A9A5C1820482BBD827 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
 		3BB0E11B08247F4CCEF59B00 /* LingoBar.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LingoBar.entitlements; sourceTree = "<group>"; };
 		41D1BB67F0D11D35727D078F /* YoudaoTranslationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YoudaoTranslationEngine.swift; sourceTree = "<group>"; };
@@ -164,7 +164,7 @@
 				EB8355911F9853DA35945A50 /* HistoryViewController.swift */,
 				91BCA0A029DAB6CCF713644D /* LanguagePopUpButton.swift */,
 				9B5CA0021A2B3C4D5E6F7A02 /* GrowingTextView.swift */,
-				1E5537D336DEEC1B936D96B3 /* SettingsWindowController.swift */,
+				1E5537D336DEEC1B936D96B3 /* SettingsViewController.swift */,
 				95C5D1E44701F1BEA5B40DD3 /* TranslationViewController.swift */,
 			);
 			path = Views;
@@ -269,7 +269,7 @@
 				4AD45CE2FD8CD4FC171FF397 /* LanguagePopUpButton.swift in Sources */,
 				7E6D8211640D60AFFC114E53 /* LingoBarApp.swift in Sources */,
 				B539EA47FDE470A1EC0E1D43 /* MicrosoftTranslationEngine.swift in Sources */,
-				22F21DC20CE4BC72D001AC36 /* SettingsWindowController.swift in Sources */,
+				22F21DC20CE4BC72D001AC36 /* SettingsViewController.swift in Sources */,
 				80C8B5D6E2DD4F2F6ABAC7F3 /* StatusBarController.swift in Sources */,
 				7B1CA0051A2B3C4D5E6F7A05 /* StatusBarPopoverPanel.swift in Sources */,
 				D36764E81560BF9C0968BF14 /* SupportedLanguage.swift in Sources */,
