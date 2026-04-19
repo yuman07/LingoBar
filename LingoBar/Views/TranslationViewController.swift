@@ -114,6 +114,12 @@ final class TranslationViewController: NSViewController {
         inputLockButton = makeIconButton("lock.open") { [weak self] in
             self?.toggleLock()
         }
+        // Lock the footprint so swapping lock.open↔lock.fill (different symbol widths)
+        // doesn't shift neighbouring items in the header stack.
+        NSLayoutConstraint.activate([
+            inputLockButton.widthAnchor.constraint(equalToConstant: 16),
+            inputLockButton.heightAnchor.constraint(equalToConstant: 16),
+        ])
         updateLockButton(locked: appState.isPanelLocked)
 
         let spacer = NSView()
