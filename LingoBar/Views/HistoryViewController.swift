@@ -105,7 +105,11 @@ final class HistoryViewController: NSViewController {
         clearAllButton.imagePosition = .imageOnly
         clearAllButton.isBordered = false
         clearAllButton.bezelStyle = .shadowlessSquare
-        clearAllButton.contentTintColor = .systemRed
+        // Straight `.systemRed` reads as too saturated against the popover's
+        // vibrancy material — the trash glyph calls more attention than a
+        // tucked-away footer control should. Drop the alpha so it still reads
+        // as "destructive / red" but sits back in the visual hierarchy.
+        clearAllButton.contentTintColor = .systemRed.withAlphaComponent(0.75)
         clearAllButton.toolTip = String(localized: "Clear All")
         clearAllButton.target = self
         clearAllButton.action = #selector(clearAll)
@@ -524,14 +528,15 @@ private final class HistoryRowCell: NSTableCellView {
 
         let iconConfig = NSImage.SymbolConfiguration(pointSize: 10, weight: .regular)
 
-        // Pin toggle. Uses `arrow.up.to.line` (move-to-top metaphor) instead of
-        // the `pin` family, because the Translate tab already spends `pin` /
-        // `pin.slash` / `pin.fill` on a different feature — keeping the panel
-        // open. A shared glyph across two unrelated affordances would be
-        // confusing. The pinned state is signalled by bumping the symbol to a
-        // bold weight and the tint one label-color step darker; no shape swap
-        // that would compete with the filled `xmark.circle.fill` next to it.
-        pinButton.image = NSImage(systemSymbolName: "arrow.up.to.line", accessibilityDescription: String(localized: "Pin to top"))?
+        // Pin toggle uses `mappin` (vertical thumbtack) rather than the
+        // `pin` family, because the Translate tab already spends `pin` /
+        // `pin.slash` / `pin.fill` on a different feature (keeping the panel
+        // open). `mappin` still reads as a pin but is visually distinct — a
+        // vertical thumbtack vs. the horizontal tie-clip of `pin`. The pinned
+        // state is signalled by a bold weight + one darker label-color step,
+        // no shape swap that would compete with the filled `xmark.circle.fill`
+        // next to it.
+        pinButton.image = NSImage(systemSymbolName: "mappin", accessibilityDescription: String(localized: "Pin to top"))?
             .withSymbolConfiguration(iconConfig)
         pinButton.imagePosition = .imageOnly
         pinButton.isBordered = false
@@ -614,7 +619,7 @@ private final class HistoryRowCell: NSTableCellView {
         let tooltip = pinned
             ? String(localized: "Unpin")
             : String(localized: "Pin to top")
-        pinButton.image = NSImage(systemSymbolName: "arrow.up.to.line", accessibilityDescription: tooltip)?
+        pinButton.image = NSImage(systemSymbolName: "mappin", accessibilityDescription: tooltip)?
             .withSymbolConfiguration(iconConfig)
         pinButton.contentTintColor = pinned ? .secondaryLabelColor : .tertiaryLabelColor
         pinButton.toolTip = tooltip
