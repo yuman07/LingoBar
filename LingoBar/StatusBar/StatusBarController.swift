@@ -1,34 +1,29 @@
 import AppKit
+import Combine
 import KeyboardShortcuts
 
 @MainActor
 final class StatusBarController {
     private var statusItem: NSStatusItem?
-    private let popover = NSPopover()
-    private let popoverContentVC = MainContentViewController()
+    private var statusPanel: StatusBarPopoverPanel?
+    private let statusPanelContentVC = MainContentViewController()
     private var panel: TranslationPanel?
     private var panelContentVC: MainContentViewController?
     private var settingsWindowController: SettingsWindowController?
     private var retentionTask: Task<Void, Never>?
-    private var popoverDelegate: PopoverDelegate?
-    // Timestamp of the NSEvent that caused the last transient auto-dismiss.
-    // Used to swallow the reopen that would otherwise fire when the same click
-    // that auto-closed the popover then delivers to the status-bar action
-    // handler (handler sees isShown=false and tries to reopen in the same
-    // event cycle). A later click is a different event and proceeds.
-    private var popoverAutoClosedEventTimestamp: TimeInterval?
-    // True between popoverWillClose and popoverDidClose. Calling show() during
-    // this window can fail silently, so we queue the show until didClose fires.
-    // Without this guard, rapid clicks during the close tail are dropped.
-    private var isPopoverClosing = false
-    private var pendingPopoverShow = false
+    // Timestamp of the NSEvent that caused the last resign-key auto-close.
+    // If the status-bar button's action handler fires for the same event, we
+    // know it's the click-outside race (click landed on our own icon, which
+    // both resigns key and fires the button action) and should not reopen.
+    private var statusPanelAutoClosedEventTimestamp: TimeInterval?
+    private var cancellables: Set<AnyCancellable> = []
 
     private var appState: AppState { SharedEnvironment.shared.appState! }
     private var appSettings: AppSettings { SharedEnvironment.shared.appSettings! }
 
     init() {
         setupStatusItem()
-        setupPopover()
+        setupStatusPanel()
         setupPanel()
         setupKeyboardShortcut()
     }
@@ -46,36 +41,27 @@ final class StatusBarController {
         button.sendAction(on: [.leftMouseDown, .rightMouseUp])
     }
 
-    private func setupPopover() {
-        popover.contentSize = NSSize(width: 380, height: 260)
-        popover.behavior = .transient
-        // Fade/resize animation adds perceptible lag and can't be interrupted,
-        // so rapid clicks feel sluggish. Skip it.
-        popover.animates = false
-        popover.contentViewController = popoverContentVC
-        popoverContentVC.onPreferredSizeChange = { [weak self] size in
-            self?.popover.contentSize = size
+    private func setupStatusPanel() {
+        let newPanel = StatusBarPopoverPanel(contentViewController: statusPanelContentVC)
+        statusPanel = newPanel
+        statusPanelContentVC.onPreferredSizeChange = { [weak newPanel] size in
+            newPanel?.setPreferredContentSize(size)
         }
-        popoverDelegate = PopoverDelegate(
-            onWillClose: { [weak self] in
-                // Tag the closing with the event that triggered it — if the
-                // action handler fires for that same event, we know it's the
-                // transient auto-dismiss race and should not reopen.
-                self?.popoverAutoClosedEventTimestamp = NSApp.currentEvent?.timestamp
-                self?.isPopoverClosing = true
-            },
-            onDidClose: { [weak self] in
-                guard let self else { return }
-                self.isPopoverClosing = false
-                if self.pendingPopoverShow {
-                    self.pendingPopoverShow = false
-                    self.openPopover()
-                    return
-                }
-                self.windowDidClose()
-            }
-        )
-        popover.delegate = popoverDelegate
+
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.didResignKeyNotification,
+            object: newPanel,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.statusPanelDidResignKey() }
+        }
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: newPanel,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.windowDidClose() }
+        }
     }
 
     private func setupPanel() {
@@ -113,50 +99,49 @@ final class StatusBarController {
         if event.type == .rightMouseUp {
             showContextMenu()
         } else {
-            togglePopover()
+            toggleStatusPanel()
         }
     }
 
-    private func togglePopover() {
-        // Handle the close tail first. During mid-close (between willClose and
-        // didClose) `popover.isShown` can still read `true`, which would cause
-        // rapid clicks to repeatedly hit the `close()` branch below — making
-        // every click a no-op instead of toggling.
-        if isPopoverClosing {
-            // Same event as the transient auto-dismiss? Swallow the reopen.
-            if let closedTs = popoverAutoClosedEventTimestamp,
-               let currentTs = NSApp.currentEvent?.timestamp,
-               closedTs == currentTs {
-                popoverAutoClosedEventTimestamp = nil
-                return
-            }
-            // Different event → user wants it open. Defer to didClose.
-            popoverAutoClosedEventTimestamp = nil
-            pendingPopoverShow = true
-            return
-        }
-
-        if popover.isShown {
-            popover.close()
-            return
-        }
-
-        // Close finished within this same event cycle (animates=false path).
-        if let closedTs = popoverAutoClosedEventTimestamp,
+    private func toggleStatusPanel() {
+        // If resignKey just auto-closed the panel within the same event cycle
+        // (the click that landed on our icon also stole key from the panel),
+        // don't reopen — the user intended to close.
+        if let closedTs = statusPanelAutoClosedEventTimestamp,
            let currentTs = NSApp.currentEvent?.timestamp,
            closedTs == currentTs {
-            popoverAutoClosedEventTimestamp = nil
+            statusPanelAutoClosedEventTimestamp = nil
             return
         }
-        popoverAutoClosedEventTimestamp = nil
-        openPopover()
+        statusPanelAutoClosedEventTimestamp = nil
+
+        if let panel = statusPanel, panel.isVisible {
+            panel.close()
+            return
+        }
+        openStatusPanel()
     }
 
-    private func openPopover() {
+    private func openStatusPanel() {
         windowWillOpen()
-        guard let button = statusItem?.button else { return }
-        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-        popover.contentViewController?.view.window?.makeKey()
+        guard let button = statusItem?.button,
+              let buttonWindow = button.window,
+              let panel = statusPanel else { return }
+        // Convert bounds via the button → window → screen chain. Going through
+        // `button.frame` would interpret the rect in the button's superview
+        // coords, which may not equal window coords if AppKit inserts wrapper
+        // views around the status button.
+        let buttonRectInWindow = button.convert(button.bounds, to: nil)
+        let buttonRectOnScreen = buttonWindow.convertToScreen(buttonRectInWindow)
+        panel.anchor(below: buttonRectOnScreen)
+        panel.makeKeyAndOrderFront(nil)
+    }
+
+    private func statusPanelDidResignKey() {
+        guard let panel = statusPanel, panel.isVisible else { return }
+        if appState.isPanelLocked { return }
+        statusPanelAutoClosedEventTimestamp = NSApp.currentEvent?.timestamp
+        panel.close()
     }
 
     private func togglePanel() {
@@ -234,29 +219,5 @@ final class StatusBarController {
 
     @objc private func quitApp() {
         NSApp.terminate(nil)
-    }
-}
-
-private final class PopoverDelegate: NSObject, NSPopoverDelegate {
-    let onWillClose: @MainActor () -> Void
-    let onDidClose: @MainActor () -> Void
-
-    init(
-        onWillClose: @escaping @MainActor () -> Void,
-        onDidClose: @escaping @MainActor () -> Void
-    ) {
-        self.onWillClose = onWillClose
-        self.onDidClose = onDidClose
-    }
-
-    // AppKit calls delegate methods on the main thread; hop synchronously so the
-    // caller (e.g. the status-bar click handler that fires right after a
-    // transient auto-dismiss) sees any state written in the callback.
-    func popoverWillClose(_ notification: Notification) {
-        MainActor.assumeIsolated { onWillClose() }
-    }
-
-    func popoverDidClose(_ notification: Notification) {
-        MainActor.assumeIsolated { onDidClose() }
     }
 }

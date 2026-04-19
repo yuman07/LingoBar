@@ -26,6 +26,7 @@ final class TranslationViewController: NSViewController {
     private var inputCopyButton: CopyFeedbackButton!
     private var inputSpeakButton: NSButton!
     private var inputClearButton: NSButton!
+    private var inputLockButton: NSButton!
     private var inputTextView: GrowingTextView!
 
     // Output section
@@ -110,8 +111,13 @@ final class TranslationViewController: NSViewController {
         }
         inputClearButton.toolTip = String(localized: "Clear")
 
+        inputLockButton = makeIconButton("lock.open") { [weak self] in
+            self?.toggleLock()
+        }
+        updateLockButton(locked: appState.isPanelLocked)
+
         let spacer = NSView()
-        let header = NSStackView(views: [inputPicker, spacer, inputCopyButton, inputSpeakButton, inputClearButton])
+        let header = NSStackView(views: [inputPicker, spacer, inputCopyButton, inputSpeakButton, inputClearButton, inputLockButton])
         header.orientation = .horizontal
         header.alignment = .centerY
         header.spacing = 8
@@ -377,6 +383,13 @@ final class TranslationViewController: NSViewController {
             }
             .store(in: &cancellables)
 
+        state.$isPanelLocked
+            .removeDuplicates()
+            .sink { [weak self] locked in
+                self?.updateLockButton(locked: locked)
+            }
+            .store(in: &cancellables)
+
         settings.$selectedEngine
             .removeDuplicates()
             .dropFirst()
@@ -413,6 +426,18 @@ final class TranslationViewController: NSViewController {
         appState.clearContent()
         appState.isTranslating = false
         view.window?.makeFirstResponder(inputTextView.textView)
+    }
+
+    private func toggleLock() {
+        appState.isPanelLocked.toggle()
+    }
+
+    private func updateLockButton(locked: Bool) {
+        let symbol = locked ? "lock.fill" : "lock.open"
+        inputLockButton.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+        inputLockButton.toolTip = locked
+            ? String(localized: "Unlock panel (allow auto-close)")
+            : String(localized: "Lock panel (stay open until manually closed)")
     }
 
     private func updateOutputVisibility() {
