@@ -313,11 +313,12 @@ final class ModernSegmentedControl: NSView {
             ? NSColor(white: 1, alpha: 0.07)
             : NSColor(white: 0, alpha: 0.05)).cgColor
 
-        // Softer than pure white — matches the off-white `secondarySystemGroupedBackground`
-        // feel of iOS's segmented pill instead of a harsh #FFF.
+        // Translucent white over the track instead of an opaque chip —
+        // the track tint bleeds through and the bubble reads as a gentle
+        // highlight rather than a bright card pasted on top.
         selectionView.layer?.backgroundColor = (isDark
-            ? NSColor(white: 1, alpha: 0.10)
-            : NSColor(calibratedWhite: 0.92, alpha: 1)).cgColor
+            ? NSColor(white: 1, alpha: 0.08)
+            : NSColor(white: 1, alpha: 0.55)).cgColor
         selectionView.layer?.borderColor = (isDark
             ? NSColor(white: 1, alpha: 0.06)
             : NSColor(white: 0, alpha: 0.04)).cgColor
