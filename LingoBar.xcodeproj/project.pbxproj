@@ -14,7 +14,6 @@
 		35B385153EA954CB677174EA /* KeyboardShortcutNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79C8E094A76B63C6091A3590 /* KeyboardShortcutNames.swift */; };
 		3A08D0A58805DEA0C8309A0B /* TranslationViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95C5D1E44701F1BEA5B40DD3 /* TranslationViewController.swift */; };
 		4AD45CE2FD8CD4FC171FF397 /* LanguagePopUpButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91BCA0A029DAB6CCF713644D /* LanguagePopUpButton.swift */; };
-		51B46F098A5533A3A9810943 /* TranslationPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F4ABA7430BBBB3FD262D981 /* TranslationPanel.swift */; };
 		7B1CA0051A2B3C4D5E6F7A05 /* StatusBarPopoverPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1CA0061A2B3C4D5E6F7A06 /* StatusBarPopoverPanel.swift */; };
 		5E32D230DCE25497716DC3C7 /* YoudaoTranslationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41D1BB67F0D11D35727D078F /* YoudaoTranslationEngine.swift */; };
 		6275FBE80F35FAD1545D2E53 /* AppleTranslationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92375AEE639DC4A151AF8B1C /* AppleTranslationEngine.swift */; };
@@ -46,7 +45,6 @@
 		3BB0E11B08247F4CCEF59B00 /* LingoBar.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LingoBar.entitlements; sourceTree = "<group>"; };
 		41D1BB67F0D11D35727D078F /* YoudaoTranslationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YoudaoTranslationEngine.swift; sourceTree = "<group>"; };
 		472032D3ADEF940B8C36124B /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		6F4ABA7430BBBB3FD262D981 /* TranslationPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationPanel.swift; sourceTree = "<group>"; };
 		7B1CA0061A2B3C4D5E6F7A06 /* StatusBarPopoverPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarPopoverPanel.swift; sourceTree = "<group>"; };
 		6F5FC4CBE7C3B6A357F5DAB6 /* BaiduTranslationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaiduTranslationEngine.swift; sourceTree = "<group>"; };
 		7093686D2D85FC4B0B9835B8 /* MainContentViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainContentViewController.swift; sourceTree = "<group>"; };
@@ -144,7 +142,6 @@
 			children = (
 				F22C17A40FD84A539D800FF2 /* StatusBarController.swift */,
 				7B1CA0061A2B3C4D5E6F7A06 /* StatusBarPopoverPanel.swift */,
-				6F4ABA7430BBBB3FD262D981 /* TranslationPanel.swift */,
 			);
 			path = StatusBar;
 			sourceTree = "<group>";
@@ -276,7 +273,6 @@
 				2BFE506EC0C5EC6DE7D4F141 /* TTSService.swift in Sources */,
 				830718572CC720CB2968C055 /* TranslationEngineProtocol.swift in Sources */,
 				7549869EFC93129DE856E9BC /* TranslationManager.swift in Sources */,
-				51B46F098A5533A3A9810943 /* TranslationPanel.swift in Sources */,
 				95C5F7560B6F4C313474E68A /* TranslationRecord.swift in Sources */,
 				9B5CA0011A2B3C4D5E6F7A01 /* GrowingTextView.swift in Sources */,
 				3A08D0A58805DEA0C8309A0B /* TranslationViewController.swift in Sources */,

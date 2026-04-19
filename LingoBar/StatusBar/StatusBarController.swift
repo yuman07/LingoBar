@@ -7,8 +7,6 @@ final class StatusBarController {
     private var statusItem: NSStatusItem?
     private var statusPanel: StatusBarPopoverPanel?
     private let statusPanelContentVC = MainContentViewController()
-    private var panel: TranslationPanel?
-    private var panelContentVC: MainContentViewController?
     private var retentionTask: Task<Void, Never>?
     // Timestamp of the NSEvent that caused the last resign-key auto-close.
     // If the status-bar button's action handler fires for the same event, we
@@ -23,7 +21,6 @@ final class StatusBarController {
     init() {
         setupStatusItem()
         setupStatusPanel()
-        setupPanel()
         setupKeyboardShortcut()
     }
 
@@ -63,30 +60,10 @@ final class StatusBarController {
         }
     }
 
-    private func setupPanel() {
-        let vc = MainContentViewController()
-        panelContentVC = vc
-        let newPanel = TranslationPanel(contentViewController: vc)
-        panel = newPanel
-        vc.onPreferredSizeChange = { [weak newPanel] size in
-            newPanel?.setContentSize(size)
-        }
-
-        NotificationCenter.default.addObserver(
-            forName: NSWindow.willCloseNotification,
-            object: panel,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.windowDidClose()
-            }
-        }
-    }
-
     private func setupKeyboardShortcut() {
         KeyboardShortcuts.onKeyUp(for: .toggleTranslator) { [weak self] in
             Task { @MainActor in
-                self?.togglePanel()
+                self?.toggleStatusPanel()
             }
         }
     }
@@ -141,15 +118,6 @@ final class StatusBarController {
         if appState.isPanelPinned { return }
         statusPanelAutoClosedEventTimestamp = NSApp.currentEvent?.timestamp
         panel.close()
-    }
-
-    private func togglePanel() {
-        if let panel, panel.isVisible, panel.isKeyWindow {
-            panel.close()
-        } else {
-            windowWillOpen()
-            panel?.toggleVisibility()
-        }
     }
 
     // MARK: - Content Retention
