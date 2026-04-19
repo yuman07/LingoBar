@@ -56,7 +56,11 @@ final class HistoryViewController: NSViewController {
         tableView.headerView = nil
         tableView.rowHeight = 64
         tableView.intercellSpacing = NSSize(width: 0, height: 0)
-        tableView.style = .inset
+        // `.plain` + clear background lets the popover's vibrancy material show
+        // through. `.inset` draws its own opaque backdrop that makes the History
+        // tab look noticeably darker/flatter than the Translate tab.
+        tableView.style = .plain
+        tableView.backgroundColor = .clear
         tableView.selectionHighlightStyle = .regular
         tableView.doubleAction = #selector(rowDoubleClicked)
         tableView.target = self
