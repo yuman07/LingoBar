@@ -46,7 +46,7 @@ final class MainContentViewController: NSViewController {
         // so the popover never shrinks back after the content shrinks. Sum
         // the children's own fittingSize instead to get the true minimum.
         let content = 8 + tabBar.fittingSize.height + 6 + divider.fittingSize.height + containerView.fittingSize.height
-        let size = NSSize(width: 380, height: max(170, content))
+        let size = NSSize(width: 340, height: max(170, content))
         guard size != lastReportedSize else { return }
         lastReportedSize = size
         preferredContentSize = size
@@ -101,14 +101,14 @@ final class MainContentViewController: NSViewController {
             // content shrink when fittingSize drops (e.g. during translation while
             // the output body is just a spinner). Anchor width on a child view
             // instead — child constraints keep their priority.
-            containerView.widthAnchor.constraint(equalToConstant: 380),
+            containerView.widthAnchor.constraint(equalToConstant: 340),
             view.heightAnchor.constraint(greaterThanOrEqualToConstant: 170),
         ])
 
         // Safety net: even if AppKit lowers this one, the child containerView's
-        // required width=380 still wins; but this stops the popover/panel from
-        // ever growing the content view wider than 380 under edge conditions.
-        let maxWidth = view.widthAnchor.constraint(lessThanOrEqualToConstant: 380)
+        // required width=340 still wins; but this stops the popover/panel from
+        // ever growing the content view wider than 340 under edge conditions.
+        let maxWidth = view.widthAnchor.constraint(lessThanOrEqualToConstant: 340)
         maxWidth.priority = .required
         maxWidth.isActive = true
     }

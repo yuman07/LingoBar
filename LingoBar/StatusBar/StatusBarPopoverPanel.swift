@@ -31,7 +31,7 @@ final class StatusBarPopoverPanel: NSPanel {
         self.contentContainer = container
 
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 380, height: 260 + Self.arrowHeight),
+            contentRect: NSRect(x: 0, y: 0, width: 340, height: 260 + Self.arrowHeight),
             styleMask: [.nonactivatingPanel, .borderless, .fullSizeContentView],
             backing: .buffered,
             defer: false
