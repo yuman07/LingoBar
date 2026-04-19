@@ -8,6 +8,7 @@ final class HistoryViewController: NSViewController {
     private var emptyLabel: NSTextField!
     private var countLabel: NSTextField!
     private var clearAllButton: NSButton!
+    private var bottomDivider: NSBox!
 
     private var allRecords: [TranslationRecord] = []
     private var filteredRecords: [TranslationRecord] = []
@@ -128,7 +129,7 @@ final class HistoryViewController: NSViewController {
         clearAllButton.action = #selector(clearAll)
         clearAllButton.translatesAutoresizingMaskIntoConstraints = false
 
-        let bottomDivider = NSBox()
+        bottomDivider = NSBox()
         bottomDivider.boxType = .separator
         bottomDivider.translatesAutoresizingMaskIntoConstraints = false
 
@@ -210,6 +211,13 @@ final class HistoryViewController: NSViewController {
         // in that state (and when the list is empty) to match the affordance
         // to what it actually does.
         clearAllButton.isHidden = !allRecords.contains { $0.favoritedAt == nil }
+        // When the entire history is empty, the search pill and the footer
+        // count both read as visual noise around the "No History" label —
+        // collapse them so the empty state is just the centered label.
+        let hasAny = !allRecords.isEmpty
+        searchField.isHidden = !hasAny
+        countLabel.isHidden = !hasAny
+        bottomDivider.isHidden = !hasAny
     }
 
     // MARK: - Actions
@@ -223,6 +231,9 @@ final class HistoryViewController: NSViewController {
     private func deleteRecord(_ record: TranslationRecord) {
         modelContext.delete(record)
         try? modelContext.save()
+        // The in-flight typing session may be holding a reference to this
+        // row; force the next translation to create a fresh row.
+        SharedEnvironment.shared.translationManager?.endCurrentSession()
         reloadRecords()
     }
 
@@ -231,6 +242,7 @@ final class HistoryViewController: NSViewController {
             modelContext.delete(record)
         }
         try? modelContext.save()
+        SharedEnvironment.shared.translationManager?.endCurrentSession()
         reloadRecords()
     }
 
@@ -252,6 +264,10 @@ final class HistoryViewController: NSViewController {
         // guaranteed to run after every sink-scheduled block from this fill.
         appState.isRestoringHistory = true
         SharedEnvironment.shared.translationManager?.cancelTranslation()
+        // Restoring a row isn't a continuation of whatever session was in
+        // flight — if the user edits the restored text, that edit should
+        // start a brand new session instead of mutating an unrelated row.
+        SharedEnvironment.shared.translationManager?.endCurrentSession()
 
         let settings = SharedEnvironment.shared.appSettings
         appState.sourceLanguage = record.source
@@ -299,7 +315,10 @@ extension HistoryViewController: NSTableViewDataSource, NSTableViewDelegate {
 
     func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
         let rowView = HistorySeparatorRowView()
-        rowView.drawsBottomSeparator = row < filteredRecords.count - 1
+        // Each row draws its own leading edge separator (a hairline at its
+        // top). Row 0 skips it so the list doesn't get a stray line above the
+        // first entry — the search bar already provides that visual boundary.
+        rowView.drawsTopSeparator = row > 0
         return rowView
     }
 
@@ -322,7 +341,11 @@ extension HistoryViewController: NSTableViewDataSource, NSTableViewDelegate {
 /// without hijacking focus from the content. `isEmphasized = false` keeps row
 /// text at its configured label colors instead of flipping to white.
 private final class HistorySeparatorRowView: NSTableRowView {
-    var drawsBottomSeparator: Bool = true { didSet { needsDisplay = true } }
+    /// NSTableRowView uses a flipped coordinate system, so `y:0` is the visual
+    /// top of the row. The hairline is drawn at `y:0` and each row owns the
+    /// divider above it — set false on the first row to suppress the leading
+    /// edge line.
+    var drawsTopSeparator: Bool = true { didSet { needsDisplay = true } }
 
     override var isEmphasized: Bool {
         get { false }
@@ -341,7 +364,7 @@ private final class HistorySeparatorRowView: NSTableRowView {
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
-        guard drawsBottomSeparator else { return }
+        guard drawsTopSeparator else { return }
         let line = NSRect(x: 12, y: 0, width: bounds.width - 24, height: 0.5)
         NSColor.labelColor.withAlphaComponent(0.07).setFill()
         NSBezierPath(rect: line).fill()

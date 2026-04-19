@@ -33,7 +33,7 @@ final class GrowingTextView: NSView {
 
     override init(frame: NSRect) {
         let textView = FocusableTextView(frame: .zero)
-        let scrollView = NSScrollView()
+        let scrollView = QuietScrollView()
         scrollView.documentView = textView
         self.scrollView = scrollView
         self.textView = textView
@@ -175,4 +175,17 @@ final class FocusableTextView: NSTextView {
 /// Label that never participates in hit testing — clicks always pass through.
 private final class NonInteractiveLabel: NSTextField {
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
+}
+
+/// NSScrollView that suppresses the "flash on appear" scroller behavior.
+///
+/// AppKit flashes overlay scrollers whenever the document becomes visible or
+/// the content size changes — which, for a popover that re-shows and re-lays
+/// out its text views every time it opens, reads as a scrollbar popping in
+/// on every panel open. Stub `flashScrollers()` to a no-op. Real scrolling
+/// (trackpad gesture, mouse wheel) still reveals the overlay scroller via
+/// the NSScroller's own response to scroll events — that code path does not
+/// go through `flashScrollers`.
+private final class QuietScrollView: NSScrollView {
+    override func flashScrollers() {}
 }

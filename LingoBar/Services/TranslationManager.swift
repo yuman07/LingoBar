@@ -19,6 +19,12 @@ final class TranslationManager {
     private var debounceTask: Task<Void, Never>?
     private let historyLimit = 100
 
+    /// History is session-scoped: a session starts when the input transitions
+    /// from empty to non-empty and ends when the input next becomes empty.
+    /// Within one session, translations mutate this record instead of piling
+    /// up new rows, so a single burst of typing produces one history entry.
+    private var currentSessionRecord: TranslationRecord?
+
     private var settings: AppSettings { SharedEnvironment.shared.appSettings! }
 
     func translateWithDebounce(appState: AppState) {
@@ -29,6 +35,7 @@ final class TranslationManager {
             appState.outputText = ""
             appState.error = nil
             appState.isTranslating = false
+            currentSessionRecord = nil
             return
         }
 
@@ -231,6 +238,15 @@ final class TranslationManager {
         debounceTask = nil
     }
 
+    /// End the current history session. The next saved translation will start
+    /// a fresh row instead of mutating the previous one. Call this when the
+    /// session boundary is forced by something other than the input going
+    /// empty — e.g. restoring a history row, or deleting rows out from under
+    /// the in-flight session.
+    func endCurrentSession() {
+        currentSessionRecord = nil
+    }
+
     // MARK: - History
 
     private func saveHistoryRecord(
@@ -243,14 +259,24 @@ final class TranslationManager {
         guard let container = SharedEnvironment.shared.modelContainer else { return }
         let context = container.mainContext
 
-        let record = TranslationRecord(
-            sourceText: sourceText,
-            targetText: targetText,
-            sourceLanguage: sourceLanguage,
-            targetLanguage: targetLanguage,
-            engineType: engineType
-        )
-        context.insert(record)
+        if let existing = currentSessionRecord, !existing.isDeleted {
+            existing.sourceText = sourceText
+            existing.targetText = targetText
+            existing.sourceLanguage = sourceLanguage.rawValue
+            existing.targetLanguage = targetLanguage.rawValue
+            existing.engineType = engineType.rawValue
+            existing.timestamp = Date()
+        } else {
+            let record = TranslationRecord(
+                sourceText: sourceText,
+                targetText: targetText,
+                sourceLanguage: sourceLanguage,
+                targetLanguage: targetLanguage,
+                engineType: engineType
+            )
+            context.insert(record)
+            currentSessionRecord = record
+        }
 
         let descriptor = FetchDescriptor<TranslationRecord>(
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
