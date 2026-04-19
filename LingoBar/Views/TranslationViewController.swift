@@ -411,14 +411,21 @@ final class TranslationViewController: NSViewController {
         state.$sourceLanguage
             .removeDuplicates()
             .sink { [weak self] lang in
-                self?.inputPicker.select(lang)
+                guard let self else { return }
+                self.inputPicker.select(lang)
+                // Hide the new source from the target picker so the two sides
+                // can't collide at all. `.auto` isn't in the target list, so
+                // excluding it is a no-op.
+                self.outputPicker.exclude(lang == .auto ? nil : lang)
             }
             .store(in: &cancellables)
 
         state.$targetLanguage
             .removeDuplicates()
             .sink { [weak self] lang in
-                self?.outputPicker.select(lang)
+                guard let self else { return }
+                self.outputPicker.select(lang)
+                self.inputPicker.exclude(lang)
             }
             .store(in: &cancellables)
 
@@ -452,6 +459,10 @@ final class TranslationViewController: NSViewController {
     private func refreshFromState() {
         inputTextView.text = appState.inputText
         outputTextView.text = appState.outputText
+        // Apply exclusions before selecting so the current values exist in
+        // the rebuilt menus.
+        outputPicker.exclude(appState.sourceLanguage == .auto ? nil : appState.sourceLanguage)
+        inputPicker.exclude(appState.targetLanguage)
         inputPicker.select(appState.sourceLanguage)
         outputPicker.select(appState.targetLanguage)
         updateEngineIndicator(appState.currentEngineType)
