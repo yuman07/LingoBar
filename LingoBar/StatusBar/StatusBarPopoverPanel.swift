@@ -3,7 +3,7 @@ import AppKit
 /// Custom popover-style panel shown from the status-bar icon.
 /// Replaces NSPopover because NSPopover auto-dims to its "inactive" appearance
 /// the moment it resigns key — which is unavoidable system chrome — and that
-/// looks bad when we want to *keep* the panel visible (lock mode). A borderless
+/// looks bad when we want to *keep* the panel visible (pin mode). A borderless
 /// non-activating NSPanel backed by an always-active NSVisualEffectView renders
 /// identically whether it holds key status or not. The effect view is masked
 /// into a rounded-rect + upward-arrow shape so it reads as a popover.
@@ -63,7 +63,7 @@ final class StatusBarPopoverPanel: NSPanel {
     override var canBecomeMain: Bool { false }
 
     override func cancelOperation(_ sender: Any?) {
-        if SharedEnvironment.shared.appState?.isPanelLocked == true { return }
+        if SharedEnvironment.shared.appState?.isPanelPinned == true { return }
         close()
     }
 

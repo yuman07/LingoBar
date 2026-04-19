@@ -11,7 +11,7 @@ final class AppState: ObservableObject {
     @Published var targetLanguage: SupportedLanguage = .english
     @Published var activeTab: Tab = .translate
     @Published var currentEngineType: TranslationEngineType = .apple
-    @Published var isPanelLocked: Bool = false
+    @Published var isPanelPinned: Bool = false
 
     enum Tab: Sendable {
         case translate

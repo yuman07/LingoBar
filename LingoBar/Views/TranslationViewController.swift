@@ -33,7 +33,7 @@ final class TranslationViewController: NSViewController {
     private var inputCopyButton: CopyFeedbackButton!
     private var inputSpeakButton: NSButton!
     private var inputClearButton: NSButton!
-    private var inputLockButton: NSButton!
+    private var inputPinButton: NSButton!
     private var inputTextView: GrowingTextView!
 
     // Output section
@@ -119,19 +119,19 @@ final class TranslationViewController: NSViewController {
         }
         inputClearButton.toolTip = String(localized: "Clear")
 
-        inputLockButton = makeIconButton("lock.open") { [weak self] in
-            self?.toggleLock()
+        inputPinButton = makeIconButton("pin.slash") { [weak self] in
+            self?.togglePin()
         }
-        // Lock the footprint so swapping lock.open↔lock.fill (different symbol widths)
+        // Lock the footprint so swapping pin.slash↔pin.fill (different symbol widths)
         // doesn't shift neighbouring items in the header stack.
         NSLayoutConstraint.activate([
-            inputLockButton.widthAnchor.constraint(equalToConstant: 18),
-            inputLockButton.heightAnchor.constraint(equalToConstant: 18),
+            inputPinButton.widthAnchor.constraint(equalToConstant: 18),
+            inputPinButton.heightAnchor.constraint(equalToConstant: 18),
         ])
-        updateLockButton(locked: appState.isPanelLocked)
+        updatePinButton(pinned: appState.isPanelPinned)
 
         let spacer = NSView()
-        let header = NSStackView(views: [inputPicker, inputLockButton, inputClearButton, spacer, inputCopyButton, inputSpeakButton])
+        let header = NSStackView(views: [inputPicker, inputPinButton, inputClearButton, spacer, inputCopyButton, inputSpeakButton])
         header.orientation = .horizontal
         header.alignment = .centerY
         header.spacing = 8
@@ -439,10 +439,10 @@ final class TranslationViewController: NSViewController {
             }
             .store(in: &cancellables)
 
-        state.$isPanelLocked
+        state.$isPanelPinned
             .removeDuplicates()
-            .sink { [weak self] locked in
-                self?.updateLockButton(locked: locked)
+            .sink { [weak self] pinned in
+                self?.updatePinButton(pinned: pinned)
             }
             .store(in: &cancellables)
 
@@ -486,16 +486,16 @@ final class TranslationViewController: NSViewController {
         view.window?.makeFirstResponder(inputTextView.textView)
     }
 
-    private func toggleLock() {
-        appState.isPanelLocked.toggle()
+    private func togglePin() {
+        appState.isPanelPinned.toggle()
     }
 
-    private func updateLockButton(locked: Bool) {
-        let symbol = locked ? "lock.fill" : "lock.open"
-        inputLockButton.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
-        inputLockButton.toolTip = locked
-            ? String(localized: "Unlock panel (allow auto-close)")
-            : String(localized: "Lock panel (stay open until manually closed)")
+    private func updatePinButton(pinned: Bool) {
+        let symbol = pinned ? "pin.fill" : "pin.slash"
+        inputPinButton.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+        inputPinButton.toolTip = pinned
+            ? String(localized: "Unpin panel (allow auto-close)")
+            : String(localized: "Pin panel (keep open until manually closed)")
     }
 
     private func updateOutputVisibility(isTranslatingOverride: Bool? = nil) {

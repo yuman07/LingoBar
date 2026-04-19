@@ -138,7 +138,7 @@ final class StatusBarController {
 
     private func statusPanelDidResignKey() {
         guard let panel = statusPanel, panel.isVisible else { return }
-        if appState.isPanelLocked { return }
+        if appState.isPanelPinned { return }
         statusPanelAutoClosedEventTimestamp = NSApp.currentEvent?.timestamp
         panel.close()
     }

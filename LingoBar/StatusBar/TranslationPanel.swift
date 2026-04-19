@@ -29,7 +29,7 @@ final class TranslationPanel: NSPanel {
     override var canBecomeMain: Bool { false }
 
     override func cancelOperation(_ sender: Any?) {
-        if SharedEnvironment.shared.appState?.isPanelLocked == true { return }
+        if SharedEnvironment.shared.appState?.isPanelPinned == true { return }
         close()
     }
 

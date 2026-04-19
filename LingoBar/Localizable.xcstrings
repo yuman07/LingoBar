@@ -371,6 +371,20 @@
           "stringUnit" : { "state" : "translated", "value" : "LingoBar 设置" }
         }
       }
+    },
+    "Pin panel (keep open until manually closed)" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "钉住窗口（保持显示直到手动关闭）" }
+        }
+      }
+    },
+    "Unpin panel (allow auto-close)" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "取消钉住（允许自动关闭）" }
+        }
+      }
     }
   },
   "version" : "1.0"
