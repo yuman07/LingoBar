@@ -306,9 +306,12 @@ final class TranslationViewController: NSViewController {
         button.contentTintColor = .linkColor
         button.translatesAutoresizingMaskIntoConstraints = false
 
+        // Keep the hint on a single line so the slot height matches a one-line
+        // output and swapping between error and normal states doesn't pop the
+        // popover vertically.
         let stack = NSStackView(views: [text, button])
-        stack.orientation = .vertical
-        stack.alignment = .leading
+        stack.orientation = .horizontal
+        stack.alignment = .firstBaseline
         stack.spacing = 6
         return stack
     }
