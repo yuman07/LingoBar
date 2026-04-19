@@ -117,7 +117,7 @@ final class TranslationViewController: NSViewController {
         updateLockButton(locked: appState.isPanelLocked)
 
         let spacer = NSView()
-        let header = NSStackView(views: [inputPicker, spacer, inputCopyButton, inputSpeakButton, inputClearButton, inputLockButton])
+        let header = NSStackView(views: [inputPicker, inputLockButton, inputClearButton, spacer, inputCopyButton, inputSpeakButton])
         header.orientation = .horizontal
         header.alignment = .centerY
         header.spacing = 8
