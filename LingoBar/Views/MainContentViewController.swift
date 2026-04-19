@@ -316,8 +316,8 @@ final class ModernSegmentedControl: NSView {
         // Softer than pure white — matches the off-white `secondarySystemGroupedBackground`
         // feel of iOS's segmented pill instead of a harsh #FFF.
         selectionView.layer?.backgroundColor = (isDark
-            ? NSColor(white: 1, alpha: 0.14)
-            : NSColor(calibratedWhite: 0.985, alpha: 1)).cgColor
+            ? NSColor(white: 1, alpha: 0.10)
+            : NSColor(calibratedWhite: 0.92, alpha: 1)).cgColor
         selectionView.layer?.borderColor = (isDark
             ? NSColor(white: 1, alpha: 0.06)
             : NSColor(white: 0, alpha: 0.04)).cgColor
@@ -357,9 +357,7 @@ private final class SegmentCell: NSView {
         paragraph.alignment = .center
         let attrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 12, weight: isSelected ? .semibold : .regular),
-            .foregroundColor: isSelected
-                ? NSColor.labelColor
-                : NSColor.secondaryLabelColor,
+            .foregroundColor: NSColor.labelColor,
             .paragraphStyle: paragraph,
         ]
         let textSize = (title as NSString).size(withAttributes: attrs)
