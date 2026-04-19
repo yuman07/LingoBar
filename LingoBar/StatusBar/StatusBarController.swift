@@ -1,15 +1,22 @@
 import AppKit
 import KeyboardShortcuts
-import SwiftUI
 
 @MainActor
 final class StatusBarController {
     private var statusItem: NSStatusItem?
     private let popover = NSPopover()
+    private let popoverContentVC = MainContentViewController()
     private var panel: TranslationPanel?
-    private var settingsWindow: NSWindow?
+    private var panelContentVC: MainContentViewController?
+    private var settingsWindowController: SettingsWindowController?
     private var retentionTask: Task<Void, Never>?
     private var popoverDelegate: PopoverDelegate?
+    // Timestamp of the NSEvent that caused the last transient auto-dismiss.
+    // Used to swallow the reopen that would otherwise fire when the same click
+    // that auto-closed the popover then delivers to the status-bar action
+    // handler (handler sees isShown=false and tries to reopen in the same
+    // event cycle). A later click is a different event and proceeds.
+    private var popoverAutoClosedEventTimestamp: TimeInterval?
 
     private var appState: AppState { SharedEnvironment.shared.appState! }
     private var appSettings: AppSettings { SharedEnvironment.shared.appSettings! }
@@ -25,35 +32,47 @@ final class StatusBarController {
 
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-
         guard let button = statusItem?.button else { return }
         button.image = NSImage(systemSymbolName: "text.bubble", accessibilityDescription: "LingoBar")
         button.target = self
         button.action = #selector(statusBarButtonClicked(_:))
-        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-    }
-
-    private func makeContentView() -> some View {
-        ContentView()
-            .environment(SharedEnvironment.shared.appState!)
-            .environment(SharedEnvironment.shared.translationManager!)
-            .environment(SharedEnvironment.shared.appSettings!)
-            .modelContainer(SharedEnvironment.shared.modelContainer!)
+        // Fire on mouseDown (left) for the snappy feel of system status items;
+        // keep right-click on mouseUp so the button highlights during the press.
+        button.sendAction(on: [.leftMouseDown, .rightMouseUp])
     }
 
     private func setupPopover() {
-        popover.contentSize = NSSize(width: 340, height: 320)
+        popover.contentSize = NSSize(width: 380, height: 260)
         popover.behavior = .transient
-        popover.animates = true
-        popover.contentViewController = NSHostingController(rootView: makeContentView())
-        popoverDelegate = PopoverDelegate(onClose: { [weak self] in
-            self?.windowDidClose()
-        })
+        // Fade/resize animation adds perceptible lag and can't be interrupted,
+        // so rapid clicks feel sluggish. Skip it.
+        popover.animates = false
+        popover.contentViewController = popoverContentVC
+        popoverContentVC.onPreferredSizeChange = { [weak self] size in
+            self?.popover.contentSize = size
+        }
+        popoverDelegate = PopoverDelegate(
+            onWillClose: { [weak self] in
+                // Tag the closing with the event that triggered it — if the
+                // action handler fires for that same event, we know it's the
+                // transient auto-dismiss race and should not reopen.
+                self?.popoverAutoClosedEventTimestamp = NSApp.currentEvent?.timestamp
+            },
+            onDidClose: { [weak self] in
+                self?.windowDidClose()
+            }
+        )
         popover.delegate = popoverDelegate
     }
 
     private func setupPanel() {
-        panel = TranslationPanel(contentView: makeContentView())
+        let vc = MainContentViewController()
+        panelContentVC = vc
+        let newPanel = TranslationPanel(contentViewController: vc)
+        panel = newPanel
+        vc.onPreferredSizeChange = { [weak newPanel] size in
+            newPanel?.setContentSize(size)
+        }
 
         NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
@@ -78,7 +97,6 @@ final class StatusBarController {
 
     @objc private func statusBarButtonClicked(_ sender: NSStatusBarButton) {
         guard let event = NSApp.currentEvent else { return }
-
         if event.type == .rightMouseUp {
             showContextMenu()
         } else {
@@ -88,13 +106,25 @@ final class StatusBarController {
 
     private func togglePopover() {
         if popover.isShown {
-            popover.performClose(nil)
-        } else {
-            windowWillOpen()
-            guard let button = statusItem?.button else { return }
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            popover.contentViewController?.view.window?.makeKey()
+            popover.close()
+            return
         }
+        // Clicking the icon while the popover is open first triggers the
+        // transient auto-dismiss and *then* delivers the same click to the
+        // button. Swallow the reopen only for that exact event — any later
+        // click is a different NSEvent with a different timestamp and should
+        // open the popover normally.
+        if let closedTs = popoverAutoClosedEventTimestamp,
+           let currentTs = NSApp.currentEvent?.timestamp,
+           closedTs == currentTs {
+            popoverAutoClosedEventTimestamp = nil
+            return
+        }
+        popoverAutoClosedEventTimestamp = nil
+        windowWillOpen()
+        guard let button = statusItem?.button else { return }
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        popover.contentViewController?.view.window?.makeKey()
     }
 
     private func togglePanel() {
@@ -119,14 +149,12 @@ final class StatusBarController {
             appState.clearContent()
             return
         }
-
         retentionTask?.cancel()
         retentionTask = Task {
             try? await Task.sleep(for: .seconds(seconds))
             guard !Task.isCancelled else { return }
             appState.clearContent()
         }
-
         appSettings.saveLanguages(from: appState)
     }
 
@@ -144,7 +172,6 @@ final class StatusBarController {
         for item in menu.items {
             item.target = self
         }
-
         statusItem?.menu = menu
         statusItem?.button?.performClick(nil)
         statusItem?.menu = nil
@@ -153,29 +180,15 @@ final class StatusBarController {
     // MARK: - Menu Actions
 
     @objc private func openSettings() {
-        if let settingsWindow, settingsWindow.isVisible {
-            settingsWindow.makeKeyAndOrderFront(nil)
+        if let settingsWindowController, let window = settingsWindowController.window, window.isVisible {
+            window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
         }
-
-        let settingsView = SettingsView()
-            .environment(SharedEnvironment.shared.appSettings!)
-
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 450, height: 300),
-            styleMask: [.titled, .closable],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = String(localized: "LingoBar Settings")
-        window.contentViewController = NSHostingController(rootView: settingsView)
-        window.center()
-        window.isReleasedWhenClosed = false
-        window.makeKeyAndOrderFront(nil)
+        let controller = SettingsWindowController()
+        settingsWindowController = controller
+        controller.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
-
-        settingsWindow = window
     }
 
     @objc private func checkForUpdates() {
@@ -192,18 +205,26 @@ final class StatusBarController {
     }
 }
 
-// MARK: - Popover Delegate
-
 private final class PopoverDelegate: NSObject, NSPopoverDelegate {
-    let onClose: @MainActor () -> Void
+    let onWillClose: @MainActor () -> Void
+    let onDidClose: @MainActor () -> Void
 
-    init(onClose: @escaping @MainActor () -> Void) {
-        self.onClose = onClose
+    init(
+        onWillClose: @escaping @MainActor () -> Void,
+        onDidClose: @escaping @MainActor () -> Void
+    ) {
+        self.onWillClose = onWillClose
+        self.onDidClose = onDidClose
+    }
+
+    // AppKit calls delegate methods on the main thread; hop synchronously so the
+    // caller (e.g. the status-bar click handler that fires right after a
+    // transient auto-dismiss) sees any state written in the callback.
+    func popoverWillClose(_ notification: Notification) {
+        MainActor.assumeIsolated { onWillClose() }
     }
 
     func popoverDidClose(_ notification: Notification) {
-        Task { @MainActor in
-            onClose()
-        }
+        MainActor.assumeIsolated { onDidClose() }
     }
 }

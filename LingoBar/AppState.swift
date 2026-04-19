@@ -1,16 +1,16 @@
+import Combine
 import Foundation
 
-@Observable
 @MainActor
-final class AppState {
-    var inputText: String = ""
-    var outputText: String = ""
-    var isTranslating: Bool = false
-    var error: TranslationError?
-    var sourceLanguage: SupportedLanguage = .auto
-    var targetLanguage: SupportedLanguage = .english
-    var activeTab: Tab = .translate
-    var currentEngineType: TranslationEngineType = .apple
+final class AppState: ObservableObject {
+    @Published var inputText: String = ""
+    @Published var outputText: String = ""
+    @Published var isTranslating: Bool = false
+    @Published var error: TranslationError?
+    @Published var sourceLanguage: SupportedLanguage = .auto
+    @Published var targetLanguage: SupportedLanguage = .english
+    @Published var activeTab: Tab = .translate
+    @Published var currentEngineType: TranslationEngineType = .apple
 
     enum Tab: Sendable {
         case translate

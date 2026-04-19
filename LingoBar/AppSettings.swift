@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 enum AppearanceMode: String, CaseIterable, Codable, Sendable, Identifiable {
@@ -16,33 +17,54 @@ enum AppearanceMode: String, CaseIterable, Codable, Sendable, Identifiable {
     }
 }
 
-@Observable
+extension Notification.Name {
+    static let appSettingsDidChange = Notification.Name("LingoBar.appSettingsDidChange")
+}
+
 @MainActor
-final class AppSettings {
-    @ObservationIgnored private let defaults = UserDefaults.standard
+final class AppSettings: ObservableObject {
+    private let defaults = UserDefaults.standard
 
-    var selectedEngine: TranslationEngineType {
-        didSet { defaults.set(selectedEngine.rawValue, forKey: Keys.selectedEngine) }
+    @Published var selectedEngine: TranslationEngineType {
+        didSet {
+            defaults.set(selectedEngine.rawValue, forKey: Keys.selectedEngine)
+            notify()
+        }
     }
 
-    var contentRetentionSeconds: Int {
-        didSet { defaults.set(contentRetentionSeconds, forKey: Keys.contentRetention) }
+    @Published var contentRetentionSeconds: Int {
+        didSet {
+            defaults.set(contentRetentionSeconds, forKey: Keys.contentRetention)
+            notify()
+        }
     }
 
-    var sourceLanguage: SupportedLanguage {
-        didSet { defaults.set(sourceLanguage.rawValue, forKey: Keys.sourceLanguage) }
+    @Published var sourceLanguage: SupportedLanguage {
+        didSet {
+            defaults.set(sourceLanguage.rawValue, forKey: Keys.sourceLanguage)
+            notify()
+        }
     }
 
-    var targetLanguage: SupportedLanguage {
-        didSet { defaults.set(targetLanguage.rawValue, forKey: Keys.targetLanguage) }
+    @Published var targetLanguage: SupportedLanguage {
+        didSet {
+            defaults.set(targetLanguage.rawValue, forKey: Keys.targetLanguage)
+            notify()
+        }
     }
 
-    var appearanceMode: AppearanceMode {
-        didSet { defaults.set(appearanceMode.rawValue, forKey: Keys.appearanceMode) }
+    @Published var appearanceMode: AppearanceMode {
+        didSet {
+            defaults.set(appearanceMode.rawValue, forKey: Keys.appearanceMode)
+            notify()
+        }
     }
 
-    var failoverEnabled: Bool {
-        didSet { defaults.set(failoverEnabled, forKey: Keys.failoverEnabled) }
+    @Published var failoverEnabled: Bool {
+        didSet {
+            defaults.set(failoverEnabled, forKey: Keys.failoverEnabled)
+            notify()
+        }
     }
 
     init() {
@@ -63,6 +85,10 @@ final class AppSettings {
     func saveLanguages(from appState: AppState) {
         sourceLanguage = appState.sourceLanguage
         targetLanguage = appState.targetLanguage
+    }
+
+    private func notify() {
+        NotificationCenter.default.post(name: .appSettingsDidChange, object: self)
     }
 
     private enum Keys {

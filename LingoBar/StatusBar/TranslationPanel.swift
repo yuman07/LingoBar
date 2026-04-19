@@ -1,11 +1,10 @@
 import AppKit
-import SwiftUI
 
 @MainActor
 final class TranslationPanel: NSPanel {
-    init(contentView: some View) {
+    init(contentViewController: NSViewController) {
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 340, height: 320),
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 260),
             styleMask: [.nonactivatingPanel, .titled, .closable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -21,7 +20,7 @@ final class TranslationPanel: NSPanel {
         hidesOnDeactivate = false
         backgroundColor = .windowBackgroundColor
 
-        self.contentViewController = NSHostingController(rootView: contentView)
+        self.contentViewController = contentViewController
 
         centerOnScreen()
     }

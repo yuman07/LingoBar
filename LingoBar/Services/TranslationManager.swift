@@ -3,7 +3,10 @@ import NaturalLanguage
 import SwiftData
 import Translation
 
-@Observable
+extension Notification.Name {
+    static let translationHistoryDidChange = Notification.Name("LingoBar.translationHistoryDidChange")
+}
+
 @MainActor
 final class TranslationManager {
     let appleEngine = AppleTranslationEngine()
@@ -249,6 +252,8 @@ final class TranslationManager {
                 context.delete(record)
             }
         }
+
+        NotificationCenter.default.post(name: .translationHistoryDidChange, object: nil)
     }
 
     // MARK: - Language Resolution
