@@ -29,7 +29,7 @@ final class StatusBarController {
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         guard let button = statusItem?.button else { return }
-        button.image = NSImage(systemSymbolName: "text.bubble", accessibilityDescription: "LingoBar")
+        button.image = NSImage(systemSymbolName: "translate", accessibilityDescription: "LingoBar")
         button.target = self
         button.action = #selector(statusBarButtonClicked(_:))
         // Fire on mouseDown (left) for the snappy feel of system status items;
