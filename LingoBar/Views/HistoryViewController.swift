@@ -69,11 +69,14 @@ final class HistoryViewController: NSViewController {
         tableView.style = .plain
         tableView.backgroundColor = .clear
         tableView.selectionHighlightStyle = .regular
-        tableView.doubleAction = #selector(rowDoubleClicked)
+        // Single-click `action` instead of a `selectionDidChange` hook: the
+        // action only fires when the row background is clicked — clicks on
+        // interactive subviews (like the per-row delete button) are consumed
+        // by those controls and don't open the record.
         tableView.target = self
+        tableView.action = #selector(rowClicked)
         tableView.dataSource = self
         tableView.delegate = self
-        tableView.menu = makeContextMenu()
 
         let col = NSTableColumn(identifier: .init("record"))
         col.resizingMask = .autoresizingMask
@@ -95,15 +98,18 @@ final class HistoryViewController: NSViewController {
         countLabel.textColor = .secondaryLabelColor
         countLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        clearAllButton = NSButton(title: String(localized: "Clear All"), target: self, action: #selector(clearAll))
+        clearAllButton = NSButton()
+        let trashConfig = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
+        clearAllButton.image = NSImage(systemSymbolName: "trash", accessibilityDescription: String(localized: "Clear All"))?
+            .withSymbolConfiguration(trashConfig)
+        clearAllButton.imagePosition = .imageOnly
         clearAllButton.isBordered = false
+        clearAllButton.bezelStyle = .shadowlessSquare
         clearAllButton.contentTintColor = .systemRed
-        clearAllButton.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        clearAllButton.toolTip = String(localized: "Clear All")
+        clearAllButton.target = self
+        clearAllButton.action = #selector(clearAll)
         clearAllButton.translatesAutoresizingMaskIntoConstraints = false
-
-        let topDivider = NSBox()
-        topDivider.boxType = .separator
-        topDivider.translatesAutoresizingMaskIntoConstraints = false
 
         let bottomDivider = NSBox()
         bottomDivider.boxType = .separator
@@ -115,7 +121,6 @@ final class HistoryViewController: NSViewController {
         footer.translatesAutoresizingMaskIntoConstraints = false
 
         view.addSubview(searchField)
-        view.addSubview(topDivider)
         view.addSubview(scrollView)
         view.addSubview(emptyLabel)
         view.addSubview(bottomDivider)
@@ -126,12 +131,7 @@ final class HistoryViewController: NSViewController {
             searchField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
             searchField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
 
-            topDivider.topAnchor.constraint(equalTo: searchField.bottomAnchor, constant: 8),
-            topDivider.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            topDivider.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            topDivider.heightAnchor.constraint(equalToConstant: 1),
-
-            scrollView.topAnchor.constraint(equalTo: topDivider.bottomAnchor),
+            scrollView.topAnchor.constraint(equalTo: searchField.bottomAnchor, constant: 8),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: bottomDivider.topAnchor),
@@ -153,21 +153,21 @@ final class HistoryViewController: NSViewController {
         ])
     }
 
-    private func makeContextMenu() -> NSMenu {
-        let menu = NSMenu()
-        let del = NSMenuItem(title: String(localized: "Delete"), action: #selector(deleteSelected), keyEquivalent: "")
-        del.target = self
-        menu.addItem(del)
-        return menu
-    }
-
     // MARK: - Data
 
     @objc private func reloadRecords() {
         let descriptor = FetchDescriptor<TranslationRecord>(
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
-        allRecords = (try? modelContext.fetch(descriptor)) ?? []
+        let fetched = (try? modelContext.fetch(descriptor)) ?? []
+        // Pinned rows float to the top in pinned-at ascending order (earlier
+        // pins above later pins, per product spec). Unpinned rows follow in
+        // the default timestamp-descending order from the fetch.
+        let pinned = fetched
+            .filter { $0.pinnedAt != nil }
+            .sorted { ($0.pinnedAt ?? .distantPast) < ($1.pinnedAt ?? .distantPast) }
+        let unpinned = fetched.filter { $0.pinnedAt == nil }
+        allRecords = pinned + unpinned
         applyFilter()
     }
 
@@ -186,41 +186,70 @@ final class HistoryViewController: NSViewController {
             ? String(localized: "No History")
             : String(localized: "No Results")
         emptyLabel.isHidden = !filteredRecords.isEmpty
-        countLabel.stringValue = "\(allRecords.count) records"
-        clearAllButton.isHidden = allRecords.isEmpty
+        countLabel.stringValue = String(format: String(localized: "%lld records"), allRecords.count)
+        // Clear-all doesn't touch pinned rows, so when every remaining record is
+        // pinned the button would be a visible no-op — hide it in that state
+        // (and when the list is empty) to match the affordance to what it does.
+        clearAllButton.isHidden = !allRecords.contains { $0.pinnedAt == nil }
     }
 
     // MARK: - Actions
 
-    @objc private func rowDoubleClicked() {
-        fillFromSelectedRow()
+    @objc private func rowClicked() {
+        let idx = tableView.clickedRow
+        guard idx >= 0, idx < filteredRecords.count else { return }
+        openRecord(filteredRecords[idx])
     }
 
-    @objc private func deleteSelected() {
-        let idx = tableView.clickedRow >= 0 ? tableView.clickedRow : tableView.selectedRow
-        guard idx >= 0, idx < filteredRecords.count else { return }
-        let record = filteredRecords[idx]
+    private func deleteRecord(_ record: TranslationRecord) {
         modelContext.delete(record)
         try? modelContext.save()
         reloadRecords()
     }
 
     @objc private func clearAll() {
-        for record in allRecords {
+        for record in allRecords where record.pinnedAt == nil {
             modelContext.delete(record)
         }
         try? modelContext.save()
         reloadRecords()
     }
 
-    private func fillFromSelectedRow() {
-        let idx = tableView.selectedRow
-        guard idx >= 0, idx < filteredRecords.count else { return }
-        let record = filteredRecords[idx]
+    /// Toggle pin state on a record. Intentionally does NOT call
+    /// `reloadRecords()` — per product spec, the row stays where it is in the
+    /// current view and only jumps to the top the next time the history tab is
+    /// opened (or otherwise refreshed via `viewWillAppear` /
+    /// `translationHistoryDidChange`). The cell updates its own pin glyph.
+    private func togglePin(_ record: TranslationRecord) {
+        record.pinnedAt = record.pinnedAt == nil ? Date() : nil
+        try? modelContext.save()
+    }
+
+    private func openRecord(_ record: TranslationRecord) {
+        // Flag the $inputText / $selectedEngine subscribers to skip translation
+        // for this tick. Those subscribers dispatch their "should I translate?"
+        // check onto the main queue after the sink fires synchronously, so we
+        // re-enable the flag via a follow-up main-queue async block —
+        // guaranteed to run after every sink-scheduled block from this fill.
+        appState.isRestoringHistory = true
+        SharedEnvironment.shared.translationManager?.cancelTranslation()
+
+        let settings = SharedEnvironment.shared.appSettings
+        appState.sourceLanguage = record.source
+        appState.targetLanguage = record.target
+        settings?.sourceLanguage = record.source
+        settings?.targetLanguage = record.target
+        settings?.selectedEngine = record.engine
+
         appState.inputText = record.sourceText
         appState.outputText = record.targetText
         appState.currentEngineType = record.engine
+        appState.isTranslating = false
+        appState.error = nil
         appState.activeTab = .translate
+        DispatchQueue.main.async { [weak self] in
+            self?.appState.isRestoringHistory = false
+        }
     }
 }
 
@@ -232,6 +261,20 @@ extension HistoryViewController: NSTableViewDataSource, NSTableViewDelegate {
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         let cell = HistoryRowCell()
         cell.configure(with: filteredRecords[row])
+        cell.onDelete = { [weak self, weak cell] in
+            guard let self, let cell else { return }
+            let idx = self.tableView.row(for: cell)
+            guard idx >= 0, idx < self.filteredRecords.count else { return }
+            self.deleteRecord(self.filteredRecords[idx])
+        }
+        cell.onPinToggle = { [weak self, weak cell] in
+            guard let self, let cell else { return }
+            let idx = self.tableView.row(for: cell)
+            guard idx >= 0, idx < self.filteredRecords.count else { return }
+            let record = self.filteredRecords[idx]
+            self.togglePin(record)
+            cell.setPinned(record.pinnedAt != nil)
+        }
         return cell
     }
 
@@ -246,10 +289,6 @@ extension HistoryViewController: NSTableViewDataSource, NSTableViewDelegate {
     }
 
     func tableView(_ tableView: NSTableView, didClick tableColumn: NSTableColumn) {}
-
-    func tableViewSelectionDidChange(_ notification: Notification) {
-        fillFromSelectedRow()
-    }
 }
 
 /// Row view that paints a hairline divider under each row except the last,
@@ -257,8 +296,29 @@ extension HistoryViewController: NSTableViewDataSource, NSTableViewDelegate {
 /// The color is explicitly lighter than the `.separator` NSBox above/below the
 /// list — those act as section edges, and the row hairline should read as a
 /// quieter secondary rhythm, not compete with them.
+///
+/// Also overrides selection drawing: the stock `.regular` style paints a bright
+/// accent-blue bar that fights the popover's vibrancy material. Replace it with
+/// a soft neutral tint (WeChat-style) so the selected row reads as highlighted
+/// without hijacking focus from the content. `isEmphasized = false` keeps row
+/// text at its configured label colors instead of flipping to white.
 private final class HistorySeparatorRowView: NSTableRowView {
     var drawsBottomSeparator: Bool = true { didSet { needsDisplay = true } }
+
+    override var isEmphasized: Bool {
+        get { false }
+        set { _ = newValue }
+    }
+
+    override func drawSelection(in dirtyRect: NSRect) {
+        guard selectionHighlightStyle != .none else { return }
+        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil
+        let fill = isDark
+            ? NSColor(white: 1, alpha: 0.10)
+            : NSColor(white: 0, alpha: 0.06)
+        fill.setFill()
+        bounds.fill()
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
@@ -275,25 +335,40 @@ private final class HistorySeparatorRowView: NSTableRowView {
 final class SearchPillField: NSView, NSTextFieldDelegate {
     var onTextChange: ((String) -> Void)?
 
+    /// Raw placeholder text. Actual `placeholderAttributedString` is re-rendered
+    /// on every appearance change so the color tracks light/dark without
+    /// relying on vibrancy (which we've disabled on this subtree).
+    private var _placeholderText: String?
+
     var placeholderString: String? {
-        get { textField.placeholderAttributedString?.string ?? textField.placeholderString }
+        get { _placeholderText }
         set {
-            guard let s = newValue else {
-                textField.placeholderAttributedString = nil
-                textField.placeholderString = nil
-                return
-            }
-            // Default NSTextField placeholder renders in `secondaryLabelColor`.
-            // Step it down to `tertiaryLabelColor` so the hint stays visibly
-            // placeholder-y and doesn't compete with live text.
-            textField.placeholderAttributedString = NSAttributedString(
-                string: s,
-                attributes: [
-                    .foregroundColor: NSColor.tertiaryLabelColor,
-                    .font: NSFont.systemFont(ofSize: NSFont.systemFontSize),
-                ]
-            )
+            _placeholderText = newValue
+            refreshPlaceholder()
         }
+    }
+
+    private func refreshPlaceholder() {
+        guard let s = _placeholderText else {
+            textField.placeholderAttributedString = nil
+            textField.placeholderString = nil
+            return
+        }
+        // With vibrancy disabled, `tertiaryLabelColor` resolves to its raw
+        // baseline, which is so light on a dark popover that the hint reads as
+        // bright white. Pick an explicit, appearance-aware gray that sits in
+        // roughly the same spot vibrancy used to land `tertiaryLabelColor`.
+        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil
+        let color: NSColor = isDark
+            ? NSColor(white: 1, alpha: 0.30)
+            : NSColor(white: 0, alpha: 0.30)
+        textField.placeholderAttributedString = NSAttributedString(
+            string: s,
+            attributes: [
+                .foregroundColor: color,
+                .font: NSFont.systemFont(ofSize: NSFont.systemFontSize),
+            ]
+        )
     }
 
     var stringValue: String {
@@ -301,8 +376,15 @@ final class SearchPillField: NSView, NSTextFieldDelegate {
         set { textField.stringValue = newValue }
     }
 
-    private let textField = NSTextField()
+    private let textField = PillTextField()
     private let icon = NSImageView()
+
+    /// Popovers with `NSVisualEffectView` material apply vibrancy remapping to
+    /// any descendant that opts in. The field editor shared by `NSTextField`
+    /// opts in, which tints `insertionPointColor` toward a vibrancy-mapped
+    /// accent (reading as purple on a blue-accent system). Opt this subtree
+    /// out so the caret renders straight from `controlAccentColor`.
+    override var allowsVibrancy: Bool { false }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -351,17 +433,46 @@ final class SearchPillField: NSView, NSTextFieldDelegate {
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         needsDisplay = true
+        refreshPlaceholder()
     }
 
     /// Clicking on the pill's background (outside the text field proper) should
     /// still focus the input, the way the native search-field bezel behaves.
     override func mouseDown(with event: NSEvent) {
         window?.makeFirstResponder(textField)
+        tintInsertionPoint()
     }
 
     func controlTextDidChange(_ notification: Notification) {
         onTextChange?(textField.stringValue)
     }
+
+    func controlTextDidBeginEditing(_ notification: Notification) {
+        tintInsertionPoint()
+    }
+
+    /// NSTextField's field editor, when hosted inside a popover's vibrancy
+    /// material, ends up rendering its insertion caret in a tinted variant of
+    /// `controlAccentColor` (reading as purple on a standard blue accent)
+    /// instead of the straight accent color that NSTextView uses in the
+    /// Translate tab. Pinning the color explicitly brings the two carets back
+    /// in sync — dispatched to the next runloop tick because AppKit re-applies
+    /// its own color after the focus hand-off completes.
+    private func tintInsertionPoint() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            if let editor = self.textField.currentEditor() as? NSTextView {
+                editor.insertionPointColor = .controlAccentColor
+            }
+        }
+    }
+}
+
+/// NSTextField subclass whose field editor opts out of vibrancy remapping, so
+/// the shared editor's caret/selection colors match other plain text views in
+/// the app even when hosted inside a `NSVisualEffectView` popover.
+private final class PillTextField: NSTextField {
+    override var allowsVibrancy: Bool { false }
 }
 
 // MARK: - Row Cell
@@ -372,6 +483,11 @@ private final class HistoryRowCell: NSTableCellView {
     private let engineIcon = NSImageView()
     private let engineLabel = NSTextField(labelWithString: "")
     private let timeLabel = NSTextField(labelWithString: "")
+    private let pinButton = NSButton()
+    private let deleteButton = NSButton()
+
+    var onDelete: (() -> Void)?
+    var onPinToggle: (() -> Void)?
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -406,26 +522,78 @@ private final class HistoryRowCell: NSTableCellView {
         timeLabel.textColor = .tertiaryLabelColor
         timeLabel.translatesAutoresizingMaskIntoConstraints = false
 
+        let iconConfig = NSImage.SymbolConfiguration(pointSize: 10, weight: .regular)
+
+        // Pin toggle. Starts as the outlined `pin` glyph in the same quiet
+        // quaternary tint as the delete button; once pinned the cell swaps in
+        // `pin.fill` and bumps the tint up to tertiary so the pinned state is
+        // readable at a glance without the control shouting for attention.
+        pinButton.image = NSImage(systemSymbolName: "pin", accessibilityDescription: String(localized: "Pin to top"))?
+            .withSymbolConfiguration(iconConfig)
+        pinButton.imagePosition = .imageOnly
+        pinButton.isBordered = false
+        pinButton.bezelStyle = .shadowlessSquare
+        pinButton.contentTintColor = .quaternaryLabelColor
+        pinButton.toolTip = String(localized: "Pin to top")
+        pinButton.target = self
+        pinButton.action = #selector(pinTapped)
+        pinButton.translatesAutoresizingMaskIntoConstraints = false
+
+        // Match the Translate tab's clear-input glyph so the per-row delete
+        // reads as a lightweight "remove this entry" affordance — distinct
+        // from the `trash` glyph on the footer's "clear all" button, which
+        // needs to feel heavier because it nukes everything. Sized down and
+        // tinted to a quaternary alpha so it sits as a quiet secondary
+        // control, not something that competes with the row's content.
+        deleteButton.image = NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: String(localized: "Delete"))?
+            .withSymbolConfiguration(iconConfig)
+        deleteButton.imagePosition = .imageOnly
+        deleteButton.isBordered = false
+        deleteButton.bezelStyle = .shadowlessSquare
+        deleteButton.contentTintColor = .quaternaryLabelColor
+        deleteButton.toolTip = String(localized: "Delete")
+        deleteButton.target = self
+        deleteButton.action = #selector(deleteTapped)
+        deleteButton.translatesAutoresizingMaskIntoConstraints = false
+
         let footer = NSStackView(views: [engineIcon, engineLabel, NSView(), timeLabel])
         footer.orientation = .horizontal
         footer.spacing = 4
         footer.translatesAutoresizingMaskIntoConstraints = false
 
-        let stack = NSStackView(views: [sourceLabel, targetLabel, footer])
-        stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 4
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(stack)
+        addSubview(sourceLabel)
+        addSubview(targetLabel)
+        addSubview(footer)
+        addSubview(pinButton)
+        addSubview(deleteButton)
 
+        // Lay out rows directly rather than in a vertical NSStackView: only the
+        // source label needs to yield horizontal space to the trailing buttons;
+        // target label and footer should keep using the full row width so the
+        // time stamp still hugs the trailing edge.
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: topAnchor, constant: 6),
-            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -6),
-            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            sourceLabel.topAnchor.constraint(equalTo: topAnchor, constant: 6),
+            sourceLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            sourceLabel.trailingAnchor.constraint(equalTo: pinButton.leadingAnchor, constant: -6),
 
-            footer.leadingAnchor.constraint(equalTo: stack.leadingAnchor),
-            footer.trailingAnchor.constraint(equalTo: stack.trailingAnchor),
+            targetLabel.topAnchor.constraint(equalTo: sourceLabel.bottomAnchor, constant: 4),
+            targetLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            targetLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+
+            footer.topAnchor.constraint(equalTo: targetLabel.bottomAnchor, constant: 4),
+            footer.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            footer.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            footer.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -6),
+
+            pinButton.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -4),
+            pinButton.centerYAnchor.constraint(equalTo: sourceLabel.centerYAnchor),
+            pinButton.widthAnchor.constraint(equalToConstant: 16),
+            pinButton.heightAnchor.constraint(equalToConstant: 16),
+
+            deleteButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            deleteButton.centerYAnchor.constraint(equalTo: sourceLabel.centerYAnchor),
+            deleteButton.widthAnchor.constraint(equalToConstant: 16),
+            deleteButton.heightAnchor.constraint(equalToConstant: 16),
         ])
     }
 
@@ -435,6 +603,27 @@ private final class HistoryRowCell: NSTableCellView {
         engineIcon.image = NSImage(systemSymbolName: record.engine.iconName, accessibilityDescription: nil)
         engineLabel.stringValue = record.engine.displayName
         timeLabel.stringValue = Self.relativeFormatter.localizedString(for: record.timestamp, relativeTo: Date())
+        setPinned(record.pinnedAt != nil)
+    }
+
+    func setPinned(_ pinned: Bool) {
+        let iconConfig = NSImage.SymbolConfiguration(pointSize: 10, weight: .regular)
+        let symbolName = pinned ? "pin.fill" : "pin"
+        let tooltip = pinned
+            ? String(localized: "Unpin")
+            : String(localized: "Pin to top")
+        pinButton.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: tooltip)?
+            .withSymbolConfiguration(iconConfig)
+        pinButton.contentTintColor = pinned ? .tertiaryLabelColor : .quaternaryLabelColor
+        pinButton.toolTip = tooltip
+    }
+
+    @objc private func deleteTapped() {
+        onDelete?()
+    }
+
+    @objc private func pinTapped() {
+        onPinToggle?()
     }
 
     private static let relativeFormatter: RelativeDateTimeFormatter = {

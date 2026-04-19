@@ -376,6 +376,7 @@ final class TranslationViewController: NSViewController {
                 self.updateClearButtonState(input: text)
                 DispatchQueue.main.async { [weak self] in
                     guard let self else { return }
+                    if self.appState.isRestoringHistory { return }
                     self.manager.translateWithDebounce(appState: self.appState)
                 }
             }
@@ -453,6 +454,7 @@ final class TranslationViewController: NSViewController {
                 guard let self else { return }
                 DispatchQueue.main.async { [weak self] in
                     guard let self else { return }
+                    if self.appState.isRestoringHistory { return }
                     self.manager.translateWithDebounce(appState: self.appState)
                 }
             }

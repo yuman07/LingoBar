@@ -17,7 +17,7 @@ final class TranslationManager {
         .youdao: YoudaoTranslationEngine(),
     ]
     private var debounceTask: Task<Void, Never>?
-    private let historyLimit = 500
+    private let historyLimit = 100
 
     private var settings: AppSettings { SharedEnvironment.shared.appSettings! }
 
@@ -255,10 +255,15 @@ final class TranslationManager {
         let descriptor = FetchDescriptor<TranslationRecord>(
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
-        if let allRecords = try? context.fetch(descriptor),
-           allRecords.count > historyLimit {
-            for record in allRecords.suffix(from: historyLimit) {
-                context.delete(record)
+        if let allRecords = try? context.fetch(descriptor) {
+            // Only unpinned records count toward the cap: a pin means "keep this
+            // around", so letting the trim evict old pins would silently break
+            // the promise the user made when they pinned the row.
+            let trimmable = allRecords.filter { $0.pinnedAt == nil }
+            if trimmable.count > historyLimit {
+                for record in trimmable.suffix(from: historyLimit) {
+                    context.delete(record)
+                }
             }
         }
 

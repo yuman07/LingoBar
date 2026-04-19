@@ -9,6 +9,7 @@ final class TranslationRecord {
     var targetLanguage: String
     var engineType: String
     var timestamp: Date
+    var pinnedAt: Date?
 
     init(
         sourceText: String,
@@ -23,6 +24,7 @@ final class TranslationRecord {
         self.targetLanguage = targetLanguage.rawValue
         self.engineType = engineType.rawValue
         self.timestamp = Date()
+        self.pinnedAt = nil
     }
 
     var engine: TranslationEngineType {
