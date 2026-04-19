@@ -20,6 +20,17 @@ final class HistoryViewController: NSViewController {
         SharedEnvironment.shared.modelContainer!.mainContext
     }
 
+    /// Softened "destructive red" for the Clear All footer button. Tuned per
+    /// appearance — a deep brick red in light mode and a muted warmer red in
+    /// dark mode — so the tint reads as destructive without the orangey glow
+    /// of `.systemRed` against the popover's vibrancy material.
+    private static let destructiveTint = NSColor(name: "LingoBar.HistoryDestructive") { appearance in
+        let isDark = appearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil
+        return isDark
+            ? NSColor(red: 0.88, green: 0.42, blue: 0.42, alpha: 1)
+            : NSColor(red: 0.68, green: 0.16, blue: 0.16, alpha: 1)
+    }
+
     override func loadView() {
         let root = NSView()
         root.translatesAutoresizingMaskIntoConstraints = false
@@ -105,11 +116,13 @@ final class HistoryViewController: NSViewController {
         clearAllButton.imagePosition = .imageOnly
         clearAllButton.isBordered = false
         clearAllButton.bezelStyle = .shadowlessSquare
-        // Straight `.systemRed` reads as too saturated against the popover's
-        // vibrancy material — the trash glyph calls more attention than a
-        // tucked-away footer control should. Drop the alpha so it still reads
-        // as "destructive / red" but sits back in the visual hierarchy.
-        clearAllButton.contentTintColor = .systemRed.withAlphaComponent(0.75)
+        // Straight `.systemRed` reads as too saturated / orangey against the
+        // popover's vibrancy material — it calls more attention than a
+        // tucked-away footer control should. Use a custom darker red tuned per
+        // appearance: a brick red in light mode (deep, grounded), a softened
+        // red in dark mode (enough luminance to stay legible on the dark
+        // material without glowing).
+        clearAllButton.contentTintColor = Self.destructiveTint
         clearAllButton.toolTip = String(localized: "Clear All")
         clearAllButton.target = self
         clearAllButton.action = #selector(clearAll)
@@ -528,15 +541,15 @@ private final class HistoryRowCell: NSTableCellView {
 
         let iconConfig = NSImage.SymbolConfiguration(pointSize: 10, weight: .regular)
 
-        // Pin toggle uses `mappin` (vertical thumbtack) rather than the
-        // `pin` family, because the Translate tab already spends `pin` /
-        // `pin.slash` / `pin.fill` on a different feature (keeping the panel
-        // open). `mappin` still reads as a pin but is visually distinct — a
-        // vertical thumbtack vs. the horizontal tie-clip of `pin`. The pinned
-        // state is signalled by a bold weight + one darker label-color step,
-        // no shape swap that would compete with the filled `xmark.circle.fill`
-        // next to it.
-        pinButton.image = NSImage(systemSymbolName: "mappin", accessibilityDescription: String(localized: "Pin to top"))?
+        // Pin toggle uses `mappin.and.ellipse` (vertical thumbtack sitting on
+        // its shadow) rather than the `pin` family, because the Translate tab
+        // already spends `pin` / `pin.slash` / `pin.fill` on a different
+        // feature (keeping the panel open). The `.and.ellipse` variant gives
+        // the glyph more body than plain `mappin`, which reads too wiry at
+        // small sizes. Pinned state is signalled by a bold weight + one
+        // darker label-color step — no shape swap that would compete with the
+        // filled `xmark.circle.fill` next to it.
+        pinButton.image = NSImage(systemSymbolName: "mappin.and.ellipse", accessibilityDescription: String(localized: "Pin to top"))?
             .withSymbolConfiguration(iconConfig)
         pinButton.imagePosition = .imageOnly
         pinButton.isBordered = false
@@ -619,7 +632,7 @@ private final class HistoryRowCell: NSTableCellView {
         let tooltip = pinned
             ? String(localized: "Unpin")
             : String(localized: "Pin to top")
-        pinButton.image = NSImage(systemSymbolName: "mappin", accessibilityDescription: tooltip)?
+        pinButton.image = NSImage(systemSymbolName: "mappin.and.ellipse", accessibilityDescription: tooltip)?
             .withSymbolConfiguration(iconConfig)
         pinButton.contentTintColor = pinned ? .secondaryLabelColor : .tertiaryLabelColor
         pinButton.toolTip = tooltip
