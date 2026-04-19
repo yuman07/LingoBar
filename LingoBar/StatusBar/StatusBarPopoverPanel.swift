@@ -95,7 +95,12 @@ final class StatusBarPopoverPanel: NSPanel {
 
     /// Set preferred content size of the embedded VC (excludes arrow chrome).
     func setPreferredContentSize(_ size: NSSize) {
+        // `setContentSize` pins the frame's bottom-left origin, so shrinking
+        // (e.g. History → Translate tab switch) drops the top edge away from
+        // the status icon. Re-pin the top-left so the arrow stays anchored.
+        let topLeft = NSPoint(x: frame.minX, y: frame.maxY)
         setContentSize(NSSize(width: size.width, height: size.height + Self.arrowHeight))
+        setFrameTopLeftPoint(topLeft)
     }
 }
 
