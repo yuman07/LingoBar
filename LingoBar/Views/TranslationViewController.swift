@@ -17,9 +17,16 @@ final class TranslationViewController: NSViewController {
 
     private let minTextHeight: CGFloat = 28
     private let maxTextHeight: CGFloat = 150  // ~8 lines of .body (17pt line × 8 + 12pt container inset)
+    private let outputRevealDuration: CFTimeInterval = 0.18
 
     private var inputHeightConstraint: NSLayoutConstraint!
     private var outputHeightConstraint: NSLayoutConstraint!
+
+    /// Target height for the output slot that's waiting to be applied.
+    /// While `isTranslating` is true, new-result height changes are held here
+    /// instead of snapping the slot mid-loading — we want the resize to happen
+    /// in the same frame as the spinner hide and text reveal, not before.
+    private var pendingOutputHeight: CGFloat?
 
     // Input section
     private var inputPicker: LanguagePopUpButton!
@@ -237,7 +244,13 @@ final class TranslationViewController: NSViewController {
         outputTextView.onHeightChange = { [weak self] h in
             guard let self else { return }
             let clamped = min(max(h, self.minTextHeight), self.maxTextHeight)
-            self.outputHeightConstraint.constant = clamped
+            // While loading, park the new size and let the reveal step apply it.
+            // Resizing now would shuffle the spinner against an invisible body.
+            if self.appState.isTranslating {
+                self.pendingOutputHeight = clamped
+            } else {
+                self.outputHeightConstraint.constant = clamped
+            }
         }
         outputHeightConstraint = outputTextView.heightAnchor.constraint(equalToConstant: minTextHeight)
         outputHeightConstraint.isActive = true
@@ -356,15 +369,20 @@ final class TranslationViewController: NSViewController {
                 guard let self else { return }
                 if translating {
                     self.progressIndicator.startAnimation(nil)
+                    self.updateOutputVisibility(isTranslatingOverride: true)
                 } else {
                     self.progressIndicator.stopAnimation(nil)
+                    self.revealOutput()
                 }
-                self.updateOutputVisibility()
             }
             .store(in: &cancellables)
 
         state.$error
+            .removeDuplicates()
             .sink { [weak self] _ in
+                // Don't fight the reveal animation: if `isTranslating` is also
+                // transitioning this same tick, it will call
+                // `updateOutputVisibility` with the fresh flag already.
                 self?.updateOutputVisibility()
             }
             .store(in: &cancellables)
@@ -449,8 +467,12 @@ final class TranslationViewController: NSViewController {
             : String(localized: "Lock panel (stay open until manually closed)")
     }
 
-    private func updateOutputVisibility() {
-        let isTranslating = appState.isTranslating
+    private func updateOutputVisibility(isTranslatingOverride: Bool? = nil) {
+        // `@Published` fires in willSet, so `appState.isTranslating` read from
+        // inside the isTranslating sink is still the stale previous value.
+        // Callers that are reacting to that sink must pass the fresh value
+        // through explicitly; everyone else can fall back to the stored one.
+        let isTranslating = isTranslatingOverride ?? appState.isTranslating
         let error = appState.error
 
         // Pick the "resting" body — what drives slot height. Spinner is an
@@ -502,6 +524,30 @@ final class TranslationViewController: NSViewController {
         }
 
         view.needsLayout = true
+    }
+
+    /// Flip from loading to settled: resize the slot to fit the new result,
+    /// drop the spinner, and fade the body in — all within one animation so
+    /// they read as a single "result appeared" moment rather than a chain of
+    /// pops. Called when `isTranslating` transitions true → false.
+    private func revealOutput() {
+        let pending = pendingOutputHeight
+        pendingOutputHeight = nil
+
+        let heightNeedsChange = pending != nil && pending != outputHeightConstraint.constant
+
+        if heightNeedsChange, let pending {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = outputRevealDuration
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                context.allowsImplicitAnimation = true
+                self.outputHeightConstraint.animator().constant = pending
+                self.updateOutputVisibility(isTranslatingOverride: false)
+                self.view.layoutSubtreeIfNeeded()
+            }
+        } else {
+            updateOutputVisibility(isTranslatingOverride: false)
+        }
     }
 
     private func updateEngineIndicator(_ engineType: TranslationEngineType) {
