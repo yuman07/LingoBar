@@ -117,8 +117,8 @@ final class TranslationViewController: NSViewController {
         // Lock the footprint so swapping lock.open↔lock.fill (different symbol widths)
         // doesn't shift neighbouring items in the header stack.
         NSLayoutConstraint.activate([
-            inputLockButton.widthAnchor.constraint(equalToConstant: 20),
-            inputLockButton.heightAnchor.constraint(equalToConstant: 20),
+            inputLockButton.widthAnchor.constraint(equalToConstant: 18),
+            inputLockButton.heightAnchor.constraint(equalToConstant: 18),
         ])
         updateLockButton(locked: appState.isPanelLocked)
 
@@ -308,7 +308,7 @@ final class TranslationViewController: NSViewController {
         button.bezelStyle = .regularSquare
         button.imagePosition = .imageOnly
         button.contentTintColor = .labelColor
-        button.symbolConfiguration = .init(pointSize: 14, weight: .regular)
+        button.symbolConfiguration = .init(pointSize: 13, weight: .regular)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }
@@ -600,14 +600,14 @@ final class CopyFeedbackButton: NSButton {
     init(action: @escaping () -> Void) {
         self.handler = action
         self.copyImage = NSImage(systemSymbolName: "doc.on.doc", accessibilityDescription: nil)
-        self.checkImage = NSImage(systemSymbolName: "checkmark", accessibilityDescription: nil)
+        self.checkImage = NSImage(systemSymbolName: "checkmark.circle.fill", accessibilityDescription: nil)
         super.init(frame: .zero)
         image = copyImage
         imagePosition = .imageOnly
         isBordered = false
         bezelStyle = .regularSquare
         contentTintColor = .labelColor
-        symbolConfiguration = .init(pointSize: 14, weight: .regular)
+        symbolConfiguration = .init(pointSize: 13, weight: .regular)
         translatesAutoresizingMaskIntoConstraints = false
         wantsLayer = true
         target = self
@@ -615,8 +615,8 @@ final class CopyFeedbackButton: NSButton {
         // Lock the footprint so swapping copy↔checkmark (different symbol widths)
         // doesn't shift neighbouring items in the header stack.
         NSLayoutConstraint.activate([
-            widthAnchor.constraint(equalToConstant: 20),
-            heightAnchor.constraint(equalToConstant: 20),
+            widthAnchor.constraint(equalToConstant: 18),
+            heightAnchor.constraint(equalToConstant: 18),
         ])
     }
 
@@ -682,7 +682,7 @@ final class EngineTagView: NSView {
         translatesAutoresizingMaskIntoConstraints = false
         wantsLayer = true
         layer?.cornerRadius = 9
-        layer?.backgroundColor = NSColor.quaternaryLabelColor.withAlphaComponent(0.3).cgColor
+        layer?.backgroundColor = NSColor.quaternaryLabelColor.withAlphaComponent(0.12).cgColor
 
         iconView.symbolConfiguration = .init(pointSize: 10, weight: .regular)
         iconView.contentTintColor = .tertiaryLabelColor
@@ -709,7 +709,7 @@ final class EngineTagView: NSView {
 
     override func updateLayer() {
         super.updateLayer()
-        layer?.backgroundColor = NSColor.quaternaryLabelColor.withAlphaComponent(0.3).cgColor
+        layer?.backgroundColor = NSColor.quaternaryLabelColor.withAlphaComponent(0.12).cgColor
     }
 
     func configure(_ engine: TranslationEngineType) {
