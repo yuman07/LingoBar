@@ -117,8 +117,8 @@ final class TranslationViewController: NSViewController {
         // Lock the footprint so swapping lock.open↔lock.fill (different symbol widths)
         // doesn't shift neighbouring items in the header stack.
         NSLayoutConstraint.activate([
-            inputLockButton.widthAnchor.constraint(equalToConstant: 16),
-            inputLockButton.heightAnchor.constraint(equalToConstant: 16),
+            inputLockButton.widthAnchor.constraint(equalToConstant: 20),
+            inputLockButton.heightAnchor.constraint(equalToConstant: 20),
         ])
         updateLockButton(locked: appState.isPanelLocked)
 
@@ -308,7 +308,7 @@ final class TranslationViewController: NSViewController {
         button.bezelStyle = .regularSquare
         button.imagePosition = .imageOnly
         button.contentTintColor = .labelColor
-        button.symbolConfiguration = .init(pointSize: 11, weight: .regular)
+        button.symbolConfiguration = .init(pointSize: 14, weight: .regular)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }
@@ -576,6 +576,7 @@ final class ActionButton: NSButton {
         self.handler = action
         super.init(frame: .zero)
         self.image = image
+        wantsLayer = true
         target = self
         self.action = #selector(runHandler)
     }
@@ -583,7 +584,10 @@ final class ActionButton: NSButton {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    @objc func runHandler() { handler() }
+    @objc func runHandler() {
+        playPressAnimation()
+        handler()
+    }
 }
 
 /// Copy button that briefly flashes a checkmark on click.
@@ -603,15 +607,16 @@ final class CopyFeedbackButton: NSButton {
         isBordered = false
         bezelStyle = .regularSquare
         contentTintColor = .labelColor
-        symbolConfiguration = .init(pointSize: 11, weight: .regular)
+        symbolConfiguration = .init(pointSize: 14, weight: .regular)
         translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
         target = self
         self.action = #selector(runCopy)
         // Lock the footprint so swapping copy↔checkmark (different symbol widths)
         // doesn't shift neighbouring items in the header stack.
         NSLayoutConstraint.activate([
-            widthAnchor.constraint(equalToConstant: 16),
-            heightAnchor.constraint(equalToConstant: 16),
+            widthAnchor.constraint(equalToConstant: 20),
+            heightAnchor.constraint(equalToConstant: 20),
         ])
     }
 
@@ -619,6 +624,7 @@ final class CopyFeedbackButton: NSButton {
     required init?(coder: NSCoder) { fatalError() }
 
     @objc private func runCopy() {
+        playPressAnimation()
         handler()
         showCheckmark()
     }
@@ -633,6 +639,29 @@ final class CopyFeedbackButton: NSButton {
         }
         resetTask = task
         DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: task)
+    }
+}
+
+extension NSButton {
+    /// Brief scale bounce to give pressable feedback.
+    fileprivate func playPressAnimation() {
+        wantsLayer = true
+        guard let layer = self.layer else { return }
+        // Center the anchor so the scale pivots on the symbol, not the corner.
+        let center = CGPoint(x: 0.5, y: 0.5)
+        if layer.anchorPoint != center {
+            let bounds = layer.bounds
+            let dx = bounds.width * (center.x - layer.anchorPoint.x)
+            let dy = bounds.height * (center.y - layer.anchorPoint.y)
+            layer.anchorPoint = center
+            layer.position = CGPoint(x: layer.position.x + dx, y: layer.position.y + dy)
+        }
+        let anim = CAKeyframeAnimation(keyPath: "transform.scale")
+        anim.values = [1.0, 0.82, 1.0]
+        anim.keyTimes = [0, 0.45, 1.0]
+        anim.duration = 0.18
+        anim.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        layer.add(anim, forKey: "press")
     }
 }
 
