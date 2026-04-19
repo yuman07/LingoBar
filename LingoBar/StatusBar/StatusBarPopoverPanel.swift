@@ -45,7 +45,7 @@ final class StatusBarPopoverPanel: NSPanel {
         backgroundColor = .clear
         isOpaque = false
         hasShadow = true
-        animationBehavior = .utilityWindow
+        animationBehavior = .none
 
         contentView = effect
         effect.addSubview(container)
