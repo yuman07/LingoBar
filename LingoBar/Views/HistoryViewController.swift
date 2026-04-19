@@ -177,14 +177,16 @@ final class HistoryViewController: NSViewController {
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
         let fetched = (try? modelContext.fetch(descriptor)) ?? []
-        // Pinned rows float to the top in pinned-at ascending order (earlier
-        // pins above later pins, per product spec). Unpinned rows follow in
-        // the default timestamp-descending order from the fetch.
-        let pinned = fetched
+        // Favorited rows float to the top in favorited-at ascending order
+        // (earlier favorites above later ones, per product spec). Unfavorited
+        // rows follow in the default timestamp-descending order from the
+        // fetch. `pinnedAt` is the SwiftData field name (kept for schema
+        // compatibility — the feature is user-facing "favorite").
+        let favorited = fetched
             .filter { $0.pinnedAt != nil }
             .sorted { ($0.pinnedAt ?? .distantPast) < ($1.pinnedAt ?? .distantPast) }
-        let unpinned = fetched.filter { $0.pinnedAt == nil }
-        allRecords = pinned + unpinned
+        let unfavorited = fetched.filter { $0.pinnedAt == nil }
+        allRecords = favorited + unfavorited
         applyFilter()
     }
 
@@ -204,9 +206,10 @@ final class HistoryViewController: NSViewController {
             : String(localized: "No Results")
         emptyLabel.isHidden = !filteredRecords.isEmpty
         countLabel.stringValue = String(format: String(localized: "%lld records"), allRecords.count)
-        // Clear-all doesn't touch pinned rows, so when every remaining record is
-        // pinned the button would be a visible no-op — hide it in that state
-        // (and when the list is empty) to match the affordance to what it does.
+        // Clear-all doesn't touch favorited rows, so when every remaining
+        // record is favorited the button would be a visible no-op — hide it
+        // in that state (and when the list is empty) to match the affordance
+        // to what it actually does.
         clearAllButton.isHidden = !allRecords.contains { $0.pinnedAt == nil }
     }
 
@@ -232,12 +235,12 @@ final class HistoryViewController: NSViewController {
         reloadRecords()
     }
 
-    /// Toggle pin state on a record. Intentionally does NOT call
+    /// Toggle favorite state on a record. Intentionally does NOT call
     /// `reloadRecords()` — per product spec, the row stays where it is in the
-    /// current view and only jumps to the top the next time the history tab is
-    /// opened (or otherwise refreshed via `viewWillAppear` /
-    /// `translationHistoryDidChange`). The cell updates its own pin glyph.
-    private func togglePin(_ record: TranslationRecord) {
+    /// current view and only jumps to the top the next time the history tab
+    /// is opened (or otherwise refreshed via `viewWillAppear` /
+    /// `translationHistoryDidChange`). The cell updates its own star glyph.
+    private func toggleFavorite(_ record: TranslationRecord) {
         record.pinnedAt = record.pinnedAt == nil ? Date() : nil
         try? modelContext.save()
     }
@@ -284,13 +287,13 @@ extension HistoryViewController: NSTableViewDataSource, NSTableViewDelegate {
             guard idx >= 0, idx < self.filteredRecords.count else { return }
             self.deleteRecord(self.filteredRecords[idx])
         }
-        cell.onPinToggle = { [weak self, weak cell] in
+        cell.onFavoriteToggle = { [weak self, weak cell] in
             guard let self, let cell else { return }
             let idx = self.tableView.row(for: cell)
             guard idx >= 0, idx < self.filteredRecords.count else { return }
             let record = self.filteredRecords[idx]
-            self.togglePin(record)
-            cell.setPinned(record.pinnedAt != nil)
+            self.toggleFavorite(record)
+            cell.setFavorited(record.pinnedAt != nil)
         }
         return cell
     }
@@ -500,11 +503,11 @@ private final class HistoryRowCell: NSTableCellView {
     private let engineIcon = NSImageView()
     private let engineLabel = NSTextField(labelWithString: "")
     private let timeLabel = NSTextField(labelWithString: "")
-    private let pinButton = NSButton()
+    private let favoriteButton = NSButton()
     private let deleteButton = NSButton()
 
     var onDelete: (() -> Void)?
-    var onPinToggle: (() -> Void)?
+    var onFavoriteToggle: (() -> Void)?
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -541,24 +544,24 @@ private final class HistoryRowCell: NSTableCellView {
 
         let iconConfig = NSImage.SymbolConfiguration(pointSize: 10, weight: .regular)
 
-        // Pin toggle uses `mappin.and.ellipse` (vertical thumbtack sitting on
-        // its shadow) rather than the `pin` family, because the Translate tab
-        // already spends `pin` / `pin.slash` / `pin.fill` on a different
-        // feature (keeping the panel open). The `.and.ellipse` variant gives
-        // the glyph more body than plain `mappin`, which reads too wiry at
-        // small sizes. Pinned state is signalled by a bold weight + one
-        // darker label-color step — no shape swap that would compete with the
-        // filled `xmark.circle.fill` next to it.
-        pinButton.image = NSImage(systemSymbolName: "mappin.and.ellipse", accessibilityDescription: String(localized: "Pin to top"))?
+        // Favorite toggle uses the `star` family rather than any `pin` /
+        // `mappin` variant, because the Translate tab already spends the pin
+        // glyph space on a different feature (keeping the panel open) and
+        // sharing a thumbtack silhouette would muddle the two. A star is the
+        // standard "save this for later" affordance on macOS and reads
+        // unambiguously at 10pt. Favorited state: `star.fill` + bold weight +
+        // one darker label-color step. Unfavorited: outline `star` at the
+        // same tertiary tint as the adjacent delete button.
+        favoriteButton.image = NSImage(systemSymbolName: "star", accessibilityDescription: String(localized: "Favorite"))?
             .withSymbolConfiguration(iconConfig)
-        pinButton.imagePosition = .imageOnly
-        pinButton.isBordered = false
-        pinButton.bezelStyle = .shadowlessSquare
-        pinButton.contentTintColor = .tertiaryLabelColor
-        pinButton.toolTip = String(localized: "Pin to top")
-        pinButton.target = self
-        pinButton.action = #selector(pinTapped)
-        pinButton.translatesAutoresizingMaskIntoConstraints = false
+        favoriteButton.imagePosition = .imageOnly
+        favoriteButton.isBordered = false
+        favoriteButton.bezelStyle = .shadowlessSquare
+        favoriteButton.contentTintColor = .tertiaryLabelColor
+        favoriteButton.toolTip = String(localized: "Favorite")
+        favoriteButton.target = self
+        favoriteButton.action = #selector(favoriteTapped)
+        favoriteButton.translatesAutoresizingMaskIntoConstraints = false
 
         // Match the Translate tab's clear-input glyph so the per-row delete
         // reads as a lightweight "remove this entry" affordance — distinct
@@ -585,7 +588,7 @@ private final class HistoryRowCell: NSTableCellView {
         addSubview(sourceLabel)
         addSubview(targetLabel)
         addSubview(footer)
-        addSubview(pinButton)
+        addSubview(favoriteButton)
         addSubview(deleteButton)
 
         // Lay out rows directly rather than in a vertical NSStackView: only the
@@ -595,7 +598,7 @@ private final class HistoryRowCell: NSTableCellView {
         NSLayoutConstraint.activate([
             sourceLabel.topAnchor.constraint(equalTo: topAnchor, constant: 6),
             sourceLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
-            sourceLabel.trailingAnchor.constraint(equalTo: pinButton.leadingAnchor, constant: -6),
+            sourceLabel.trailingAnchor.constraint(equalTo: favoriteButton.leadingAnchor, constant: -6),
 
             targetLabel.topAnchor.constraint(equalTo: sourceLabel.bottomAnchor, constant: 4),
             targetLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
@@ -606,10 +609,10 @@ private final class HistoryRowCell: NSTableCellView {
             footer.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
             footer.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -6),
 
-            pinButton.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -4),
-            pinButton.centerYAnchor.constraint(equalTo: sourceLabel.centerYAnchor),
-            pinButton.widthAnchor.constraint(equalToConstant: 16),
-            pinButton.heightAnchor.constraint(equalToConstant: 16),
+            favoriteButton.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -4),
+            favoriteButton.centerYAnchor.constraint(equalTo: sourceLabel.centerYAnchor),
+            favoriteButton.widthAnchor.constraint(equalToConstant: 16),
+            favoriteButton.heightAnchor.constraint(equalToConstant: 16),
 
             deleteButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
             deleteButton.centerYAnchor.constraint(equalTo: sourceLabel.centerYAnchor),
@@ -624,26 +627,27 @@ private final class HistoryRowCell: NSTableCellView {
         engineIcon.image = NSImage(systemSymbolName: record.engine.iconName, accessibilityDescription: nil)
         engineLabel.stringValue = record.engine.displayName
         timeLabel.stringValue = Self.relativeFormatter.localizedString(for: record.timestamp, relativeTo: Date())
-        setPinned(record.pinnedAt != nil)
+        setFavorited(record.pinnedAt != nil)
     }
 
-    func setPinned(_ pinned: Bool) {
-        let iconConfig = NSImage.SymbolConfiguration(pointSize: 10, weight: pinned ? .bold : .regular)
-        let tooltip = pinned
-            ? String(localized: "Unpin")
-            : String(localized: "Pin to top")
-        pinButton.image = NSImage(systemSymbolName: "mappin.and.ellipse", accessibilityDescription: tooltip)?
+    func setFavorited(_ favorited: Bool) {
+        let iconConfig = NSImage.SymbolConfiguration(pointSize: 10, weight: favorited ? .bold : .regular)
+        let symbolName = favorited ? "star.fill" : "star"
+        let tooltip = favorited
+            ? String(localized: "Unfavorite")
+            : String(localized: "Favorite")
+        favoriteButton.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: tooltip)?
             .withSymbolConfiguration(iconConfig)
-        pinButton.contentTintColor = pinned ? .secondaryLabelColor : .tertiaryLabelColor
-        pinButton.toolTip = tooltip
+        favoriteButton.contentTintColor = favorited ? .secondaryLabelColor : .tertiaryLabelColor
+        favoriteButton.toolTip = tooltip
     }
 
     @objc private func deleteTapped() {
         onDelete?()
     }
 
-    @objc private func pinTapped() {
-        onPinToggle?()
+    @objc private func favoriteTapped() {
+        onFavoriteToggle?()
     }
 
     private static let relativeFormatter: RelativeDateTimeFormatter = {

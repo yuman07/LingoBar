@@ -256,9 +256,10 @@ final class TranslationManager {
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
         if let allRecords = try? context.fetch(descriptor) {
-            // Only unpinned records count toward the cap: a pin means "keep this
-            // around", so letting the trim evict old pins would silently break
-            // the promise the user made when they pinned the row.
+            // Only unfavorited records count toward the cap: a favorite means
+            // "keep this around", so letting the trim evict old favorites
+            // would silently break the promise the user made when they
+            // starred the row. (`pinnedAt` is the legacy schema name.)
             let trimmable = allRecords.filter { $0.pinnedAt == nil }
             if trimmable.count > historyLimit {
                 for record in trimmable.suffix(from: historyLimit) {

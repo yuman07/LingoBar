@@ -197,17 +197,17 @@
         }
       }
     },
-    "Pin to top" : {
+    "Favorite" : {
       "localizations" : {
         "zh-Hans" : {
-          "stringUnit" : { "state" : "translated", "value" : "置顶" }
+          "stringUnit" : { "state" : "translated", "value" : "收藏" }
         }
       }
     },
-    "Unpin" : {
+    "Unfavorite" : {
       "localizations" : {
         "zh-Hans" : {
-          "stringUnit" : { "state" : "translated", "value" : "取消置顶" }
+          "stringUnit" : { "state" : "translated", "value" : "取消收藏" }
         }
       }
     },
