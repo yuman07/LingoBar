@@ -498,10 +498,17 @@ final class SearchPillField: NSView, NSTextFieldDelegate {
 
     /// Programmatically take focus, matching the click path. Used when the
     /// History tab becomes active so the search field is ready to accept
-    /// typing without the user clicking first.
+    /// typing without the user clicking first. Pulls the caret to the end
+    /// of the current query instead of the select-all that AppKit applies
+    /// by default when the field editor gains focus, so typing appends
+    /// rather than replaces.
     func focusField() {
-        window?.makeFirstResponder(textField)
+        guard let window, window.makeFirstResponder(textField) else { return }
         tintInsertionPoint()
+        if let editor = textField.currentEditor() {
+            let length = (textField.stringValue as NSString).length
+            editor.selectedRange = NSRange(location: length, length: 0)
+        }
     }
 
     func controlTextDidChange(_ notification: Notification) {
