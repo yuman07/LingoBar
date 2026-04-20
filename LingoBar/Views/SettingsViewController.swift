@@ -1,13 +1,19 @@
 import AppKit
+import Combine
 import KeyboardShortcuts
 import ServiceManagement
 
-/// Settings tab: a single scrollable form that shows the general rows
-/// (launch at login, toggle shortcut) followed by the engine list + request
-/// timeout. No sub-page navigation — everything fits in one view.
+/// Settings tab: a single flat form with Launch/Shortcut/Timeout rows at the
+/// top, followed by the engine list which extends to the panel bottom so the
+/// list itself carries any overflow scrolling instead of the whole page.
 final class SettingsViewController: NSViewController {
     private var launchToggle: NSButton!
+    private var timeoutField: NSTextField!
+    private var timeoutStepper: NSStepper!
     private let engineSettingsVC = EngineSettingsViewController()
+    private var cancellables: Set<AnyCancellable> = []
+
+    private var settings: AppSettings { SharedEnvironment.shared.appSettings! }
 
     override func loadView() {
         let root = NSView()
@@ -19,11 +25,21 @@ final class SettingsViewController: NSViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         addChild(engineSettingsVC)
+        applyTimeout(settings.engineTimeoutSeconds)
+        // Mirror external writes (e.g. the setter clamping an out-of-range
+        // entry) back into the field so the UI doesn't get out of sync with
+        // the stored value.
+        settings.$engineTimeoutSeconds
+            .sink { [weak self] value in
+                DispatchQueue.main.async { [weak self] in self?.applyTimeout(value) }
+            }
+            .store(in: &cancellables)
     }
 
     override func viewWillAppear() {
         super.viewWillAppear()
         launchToggle.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        applyTimeout(settings.engineTimeoutSeconds)
     }
 
     // MARK: - Layout
@@ -37,52 +53,84 @@ final class SettingsViewController: NSViewController {
 
         let launchRow = labeledRow(title: String(localized: "Launch at Login"), control: launchToggle)
         let shortcutRow = labeledRow(title: String(localized: "Toggle Translator"), control: recorderPill)
+        let timeoutRow = labeledRow(title: String(localized: "Request timeout"), control: makeTimeoutControl())
 
         let enginesView = engineSettingsVC.view
         enginesView.translatesAutoresizingMaskIntoConstraints = false
 
-        let contentStack = NSStackView(views: [launchRow, shortcutRow, enginesView])
-        contentStack.orientation = .vertical
-        contentStack.alignment = .leading
-        contentStack.spacing = 4
-        // Extra breathing room between the plain rows and the engines block so
-        // the rounded list doesn't bump straight into the shortcut pill.
-        contentStack.setCustomSpacing(14, after: shortcutRow)
-        contentStack.edgeInsets = NSEdgeInsets(top: 4, left: 12, bottom: 12, right: 12)
-        contentStack.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(launchRow)
+        view.addSubview(shortcutRow)
+        view.addSubview(timeoutRow)
+        view.addSubview(enginesView)
 
-        let sideInsets = contentStack.edgeInsets.left + contentStack.edgeInsets.right
-        for row in [launchRow, shortcutRow, enginesView] {
-            row.widthAnchor.constraint(equalTo: contentStack.widthAnchor, constant: -sideInsets).isActive = true
-        }
-
-        let flip = FlippedView()
-        flip.translatesAutoresizingMaskIntoConstraints = false
-        flip.addSubview(contentStack)
-
-        let scroll = NSScrollView()
-        scroll.translatesAutoresizingMaskIntoConstraints = false
-        scroll.hasVerticalScroller = true
-        scroll.drawsBackground = false
-        scroll.documentView = flip
-        scroll.automaticallyAdjustsContentInsets = false
-
-        view.addSubview(scroll)
+        let sideInset: CGFloat = 12
 
         NSLayoutConstraint.activate([
-            scroll.topAnchor.constraint(equalTo: view.topAnchor),
-            scroll.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            launchRow.topAnchor.constraint(equalTo: view.topAnchor, constant: 4),
+            launchRow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sideInset),
+            launchRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sideInset),
 
-            contentStack.topAnchor.constraint(equalTo: flip.topAnchor),
-            contentStack.leadingAnchor.constraint(equalTo: flip.leadingAnchor),
-            contentStack.trailingAnchor.constraint(equalTo: flip.trailingAnchor),
-            contentStack.bottomAnchor.constraint(equalTo: flip.bottomAnchor),
-            flip.widthAnchor.constraint(equalTo: scroll.widthAnchor),
+            shortcutRow.topAnchor.constraint(equalTo: launchRow.bottomAnchor, constant: 4),
+            shortcutRow.leadingAnchor.constraint(equalTo: launchRow.leadingAnchor),
+            shortcutRow.trailingAnchor.constraint(equalTo: launchRow.trailingAnchor),
 
-            view.heightAnchor.constraint(equalToConstant: 300),
+            timeoutRow.topAnchor.constraint(equalTo: shortcutRow.bottomAnchor, constant: 4),
+            timeoutRow.leadingAnchor.constraint(equalTo: launchRow.leadingAnchor),
+            timeoutRow.trailingAnchor.constraint(equalTo: launchRow.trailingAnchor),
+
+            // Engine section: pinned under the timeout row and stretched to
+            // the panel bottom (minus a small cosmetic pad). The engine box
+            // inside owns its own scroll view, so any overflow happens there.
+            enginesView.topAnchor.constraint(equalTo: timeoutRow.bottomAnchor, constant: 10),
+            enginesView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sideInset),
+            enginesView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sideInset),
+            enginesView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -12),
+
+            view.heightAnchor.constraint(equalToConstant: 400),
         ])
+    }
+
+    private func makeTimeoutControl() -> NSView {
+        timeoutField = NSTextField()
+        timeoutField.alignment = .right
+        timeoutField.controlSize = .small
+        timeoutField.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        timeoutField.translatesAutoresizingMaskIntoConstraints = false
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .none
+        formatter.minimum = NSNumber(value: AppSettings.minEngineTimeoutSeconds)
+        formatter.maximum = NSNumber(value: 300)
+        formatter.allowsFloats = false
+        timeoutField.formatter = formatter
+        timeoutField.target = self
+        timeoutField.action = #selector(timeoutFieldChanged)
+        timeoutField.widthAnchor.constraint(equalToConstant: 48).isActive = true
+
+        timeoutStepper = NSStepper()
+        timeoutStepper.controlSize = .small
+        timeoutStepper.translatesAutoresizingMaskIntoConstraints = false
+        timeoutStepper.minValue = Double(AppSettings.minEngineTimeoutSeconds)
+        timeoutStepper.maxValue = 300
+        timeoutStepper.increment = 1
+        timeoutStepper.valueWraps = false
+        timeoutStepper.target = self
+        timeoutStepper.action = #selector(timeoutStepperChanged)
+
+        let unitLabel = NSTextField(labelWithString: String(localized: "seconds"))
+        unitLabel.textColor = .secondaryLabelColor
+
+        let row = NSStackView(views: [timeoutField, timeoutStepper, unitLabel])
+        row.orientation = .horizontal
+        row.spacing = 6
+        row.alignment = .centerY
+        row.translatesAutoresizingMaskIntoConstraints = false
+        return row
+    }
+
+    private func applyTimeout(_ seconds: Int) {
+        guard let field = timeoutField, let stepper = timeoutStepper else { return }
+        if field.integerValue != seconds { field.integerValue = seconds }
+        if Int(stepper.doubleValue) != seconds { stepper.integerValue = seconds }
     }
 
     /// Row with the title flush-left and the control sitting right after it.
@@ -124,6 +172,16 @@ final class SettingsViewController: NSViewController {
         } catch {
             launchToggle.state = SMAppService.mainApp.status == .enabled ? .on : .off
         }
+    }
+
+    @objc private func timeoutFieldChanged() {
+        let value = max(AppSettings.minEngineTimeoutSeconds, timeoutField.integerValue)
+        settings.engineTimeoutSeconds = value
+    }
+
+    @objc private func timeoutStepperChanged() {
+        let value = max(AppSettings.minEngineTimeoutSeconds, timeoutStepper.integerValue)
+        settings.engineTimeoutSeconds = value
     }
 }
 

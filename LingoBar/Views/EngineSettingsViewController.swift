@@ -1,30 +1,27 @@
 import AppKit
 import Combine
 
-/// Engine section of the Settings tab: the full ordered list of supported
-/// engines with enable checkboxes on the left and drag handles for reorder,
-/// plus the shared request-timeout control. Lives embedded in
-/// `SettingsViewController`'s scroll form — owns its own subviews but does
-/// not bring its own scroll view.
+/// Engine list section of the Settings tab: a footnote introducing the list,
+/// then a bordered engine list that fills the remaining vertical space. Lives
+/// embedded inside `SettingsViewController`; its owner is responsible for
+/// pinning the top to whatever sits above it and the bottom to the panel
+/// edge so the box can stretch to the window bottom.
 ///
 /// Layout:
 /// ```
+/// Translations try enabled engines top-to-bottom; drag to reorder.
 /// ┌──────────────────────────────┐
 /// │ ☑ ⠿ 🍎 Apple                 │
 /// │ ☐ ⠿ G  Google                │
+/// │                              │  ← empty area when rows don't fill
 /// └──────────────────────────────┘
-/// Translations try enabled engines top-to-bottom; drag to reorder.
-///
-/// Request timeout  [ 5 ] ↕ seconds
 /// ```
 final class EngineSettingsViewController: NSViewController {
     private let rowPasteboardType = NSPasteboard.PasteboardType("com.yuman.LingoBar.engineRow")
 
     private var priorityBox: NSView!
     private var tableView: NSTableView!
-    private var tableHeightConstraint: NSLayoutConstraint!
-    private var timeoutField: NSTextField!
-    private var timeoutStepper: NSStepper!
+    private var tableScroll: NSScrollView!
 
     private var cancellables: Set<AnyCancellable> = []
     private var settings: AppSettings { SharedEnvironment.shared.appSettings! }
@@ -51,28 +48,22 @@ final class EngineSettingsViewController: NSViewController {
     // MARK: - Layout
 
     private func buildLayout() {
-        let stack = NSStackView(views: [
-            makeEngineBox(),
-            makeHintLabel(),
-            makeTimeoutRow(),
-        ])
-        stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 8
-        stack.setCustomSpacing(12, after: stack.arrangedSubviews[1])
-        stack.translatesAutoresizingMaskIntoConstraints = false
+        let hint = makeHintLabel()
+        let box = makeEngineBox()
 
-        view.addSubview(stack)
+        view.addSubview(hint)
+        view.addSubview(box)
+
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: view.topAnchor),
-            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            stack.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-        ])
+            hint.topAnchor.constraint(equalTo: view.topAnchor),
+            hint.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            hint.trailingAnchor.constraint(equalTo: view.trailingAnchor),
 
-        // Anchor the bordered list to the full column so rows don't float at
-        // their intrinsic (narrow) width.
-        priorityBox.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+            box.topAnchor.constraint(equalTo: hint.bottomAnchor, constant: 6),
+            box.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            box.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            box.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
     }
 
     private func makeEngineBox() -> NSView {
@@ -95,16 +86,18 @@ final class EngineSettingsViewController: NSViewController {
         column.resizingMask = .autoresizingMask
         tableView.addTableColumn(column)
 
-        // Plain NSScrollView wrapping the table so row clipping / redraw work
-        // correctly, but its own scrolling is disabled — the outer Settings
-        // scroll view owns vertical movement.
-        let tableScroll = NSScrollView()
+        // Scroll view with elasticity: when the row count overflows the box,
+        // the rubber-band bounce gives the list a native scroll feel instead
+        // of the stiff clipping we had with elasticity disabled.
+        tableScroll = NSScrollView()
         tableScroll.translatesAutoresizingMaskIntoConstraints = false
-        tableScroll.hasVerticalScroller = false
+        tableScroll.hasVerticalScroller = true
         tableScroll.hasHorizontalScroller = false
         tableScroll.drawsBackground = false
         tableScroll.documentView = tableView
-        tableScroll.verticalScrollElasticity = .none
+        tableScroll.autohidesScrollers = true
+        tableScroll.scrollerStyle = .overlay
+        tableScroll.verticalScrollElasticity = .automatic
         tableScroll.horizontalScrollElasticity = .none
 
         priorityBox = NSView()
@@ -117,13 +110,11 @@ final class EngineSettingsViewController: NSViewController {
         priorityBox.translatesAutoresizingMaskIntoConstraints = false
         priorityBox.addSubview(tableScroll)
 
-        tableHeightConstraint = tableScroll.heightAnchor.constraint(equalToConstant: rowHeight)
         NSLayoutConstraint.activate([
-            tableScroll.topAnchor.constraint(equalTo: priorityBox.topAnchor),
-            tableScroll.bottomAnchor.constraint(equalTo: priorityBox.bottomAnchor),
+            tableScroll.topAnchor.constraint(equalTo: priorityBox.topAnchor, constant: 2),
+            tableScroll.bottomAnchor.constraint(equalTo: priorityBox.bottomAnchor, constant: -2),
             tableScroll.leadingAnchor.constraint(equalTo: priorityBox.leadingAnchor),
             tableScroll.trailingAnchor.constraint(equalTo: priorityBox.trailingAnchor),
-            tableHeightConstraint,
         ])
         return priorityBox
     }
@@ -137,47 +128,6 @@ final class EngineSettingsViewController: NSViewController {
         label.preferredMaxLayoutWidth = 280
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
-    }
-
-    private func makeTimeoutRow() -> NSView {
-        timeoutField = NSTextField()
-        timeoutField.alignment = .right
-        timeoutField.translatesAutoresizingMaskIntoConstraints = false
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .none
-        formatter.minimum = NSNumber(value: AppSettings.minEngineTimeoutSeconds)
-        formatter.maximum = NSNumber(value: 300)
-        formatter.allowsFloats = false
-        timeoutField.formatter = formatter
-        timeoutField.target = self
-        timeoutField.action = #selector(timeoutFieldChanged)
-        timeoutField.widthAnchor.constraint(equalToConstant: 56).isActive = true
-
-        timeoutStepper = NSStepper()
-        timeoutStepper.translatesAutoresizingMaskIntoConstraints = false
-        timeoutStepper.minValue = Double(AppSettings.minEngineTimeoutSeconds)
-        timeoutStepper.maxValue = 300
-        timeoutStepper.increment = 1
-        timeoutStepper.valueWraps = false
-        timeoutStepper.target = self
-        timeoutStepper.action = #selector(timeoutStepperChanged)
-
-        let unitLabel = NSTextField(labelWithString: String(localized: "seconds"))
-        unitLabel.textColor = .secondaryLabelColor
-
-        let title = NSTextField(labelWithString: String(localized: "Request timeout"))
-        title.font = .preferredFont(forTextStyle: .body)
-        title.translatesAutoresizingMaskIntoConstraints = false
-        title.setContentCompressionResistancePriority(.required, for: .horizontal)
-
-        let row = NSStackView(views: [title, timeoutField, timeoutStepper, unitLabel])
-        row.orientation = .horizontal
-        row.spacing = 6
-        row.alignment = .centerY
-        row.setCustomSpacing(10, after: title)
-        row.translatesAutoresizingMaskIntoConstraints = false
-        row.heightAnchor.constraint(equalToConstant: 28).isActive = true
-        return row
     }
 
     // MARK: - Subscribe / refresh
@@ -196,26 +146,10 @@ final class EngineSettingsViewController: NSViewController {
                 DispatchQueue.main.async { [weak self] in self?.refresh() }
             }
             .store(in: &cancellables)
-
-        settings.$engineTimeoutSeconds
-            .sink { [weak self] value in
-                DispatchQueue.main.async { [weak self] in
-                    self?.applyTimeout(value)
-                }
-            }
-            .store(in: &cancellables)
     }
 
     private func refresh() {
         tableView.reloadData()
-        let rows = max(1, settings.engineList.count)
-        tableHeightConstraint.constant = CGFloat(rows) * rowHeight
-        applyTimeout(settings.engineTimeoutSeconds)
-    }
-
-    private func applyTimeout(_ seconds: Int) {
-        if timeoutField.integerValue != seconds { timeoutField.integerValue = seconds }
-        if Int(timeoutStepper.doubleValue) != seconds { timeoutStepper.integerValue = seconds }
     }
 
     // MARK: - Actions
@@ -228,16 +162,6 @@ final class EngineSettingsViewController: NSViewController {
         // the user tries to uncheck the sole enabled engine, but `toggleEngine`
         // is also defensive — a second enforcement point doesn't hurt.
         settings.toggleEngine(engine)
-    }
-
-    @objc private func timeoutFieldChanged() {
-        let value = max(AppSettings.minEngineTimeoutSeconds, timeoutField.integerValue)
-        settings.engineTimeoutSeconds = value
-    }
-
-    @objc private func timeoutStepperChanged() {
-        let value = max(AppSettings.minEngineTimeoutSeconds, timeoutStepper.integerValue)
-        settings.engineTimeoutSeconds = value
     }
 }
 
