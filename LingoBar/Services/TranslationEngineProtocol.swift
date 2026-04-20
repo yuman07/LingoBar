@@ -37,21 +37,25 @@ struct TranslationResult: Sendable {
 }
 
 enum TranslationError: Sendable, Equatable {
-    case languagePackNotInstalled
+    case languagePackNotInstalled([SupportedLanguage])
     case unsupportedLanguagePair
     case allEnginesFailed
     case engineError(String)
 
     var localizedMessage: String {
         switch self {
-        case .languagePackNotInstalled:
-            String(localized: "Language pack not installed.")
+        case .languagePackNotInstalled(let missing):
+            if missing.isEmpty {
+                return String(localized: "Language pack not installed.")
+            }
+            let names = ListFormatter.localizedString(byJoining: missing.map(\.displayName))
+            return String(format: String(localized: "Language pack not installed: %@"), names)
         case .unsupportedLanguagePair:
-            String(localized: "Unsupported language pair.")
+            return String(localized: "Unsupported language pair.")
         case .allEnginesFailed:
-            String(localized: "All translation engines failed.")
+            return String(localized: "All translation engines failed.")
         case .engineError(let message):
-            message
+            return message
         }
     }
 }

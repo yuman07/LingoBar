@@ -118,9 +118,38 @@ final class TranslationManager {
             }
         }
 
-        // No failover possible — prompt user to download the pack.
-        appState.error = .languagePackNotInstalled
+        // No failover possible — prompt user to download the pack(s).
+        let missing = await missingApplePacks(source: source, target: target)
+        guard !Task.isCancelled else { return }
+        appState.error = .languagePackNotInstalled(missing)
         appState.isTranslating = false
+    }
+
+    /// Apple's `LanguageAvailability` only exposes a pair-level status, so we
+    /// probe each side against every other supported language: if any pair
+    /// reports `.installed`, that side's pack is present on-device. This lets
+    /// us name exactly which pack(s) the user needs to download.
+    private func missingApplePacks(
+        source: SupportedLanguage,
+        target: SupportedLanguage
+    ) async -> [SupportedLanguage] {
+        var missing: [SupportedLanguage] = []
+        if !(await isApplePackInstalled(source)) { missing.append(source) }
+        if source != target, !(await isApplePackInstalled(target)) { missing.append(target) }
+        return missing
+    }
+
+    private func isApplePackInstalled(_ lang: SupportedLanguage) async -> Bool {
+        guard let locale = lang.localeLanguage else { return false }
+        let availability = LanguageAvailability()
+        for probe in SupportedLanguage.allCases where probe != .auto && probe != lang {
+            guard let probeLocale = probe.localeLanguage else { continue }
+            if Task.isCancelled { return false }
+            if await availability.status(from: locale, to: probeLocale) == .installed { return true }
+            if Task.isCancelled { return false }
+            if await availability.status(from: probeLocale, to: locale) == .installed { return true }
+        }
+        return false
     }
 
     // MARK: - Third-party-preferred path

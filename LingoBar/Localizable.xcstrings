@@ -375,6 +375,13 @@
         }
       }
     },
+    "Language pack not installed: %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "语言包未安装：%@" }
+        }
+      }
+    },
     "Enter text" : {
       "localizations" : {
         "zh-Hans" : {

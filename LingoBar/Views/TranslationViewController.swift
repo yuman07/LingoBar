@@ -47,6 +47,7 @@ final class TranslationViewController: NSViewController {
     private var errorContainer: NSView!
     private var progressIndicator: NSProgressIndicator!
     private var langPackHintView: NSView!
+    private var langPackHintLabel: NSTextField!
 
     private var appState: AppState { SharedEnvironment.shared.appState! }
     private var manager: TranslationManager { SharedEnvironment.shared.translationManager! }
@@ -312,6 +313,7 @@ final class TranslationViewController: NSViewController {
         text.font = .preferredFont(forTextStyle: .body)
         text.textColor = .secondaryLabelColor
         text.translatesAutoresizingMaskIntoConstraints = false
+        langPackHintLabel = text
 
         let button = NSButton(title: String(localized: "Go to download →"), target: self, action: #selector(openTranslationSettings))
         button.bezelStyle = .inline
@@ -514,7 +516,16 @@ final class TranslationViewController: NSViewController {
         let restingBody: NSView
         if let error {
             switch error {
-            case .languagePackNotInstalled:
+            case .languagePackNotInstalled(let missing):
+                if missing.isEmpty {
+                    langPackHintLabel.stringValue = String(localized: "Language pack not installed.")
+                } else {
+                    let names = ListFormatter.localizedString(byJoining: missing.map(\.displayName))
+                    langPackHintLabel.stringValue = String(
+                        format: String(localized: "Language pack not installed: %@"),
+                        names
+                    )
+                }
                 restingBody = langPackHintView
             default:
                 errorLabel.stringValue = error.localizedMessage
