@@ -615,8 +615,10 @@ private final class HistoryRowCell: NSTableCellView {
 
         // Lay out rows directly rather than in a vertical NSStackView: only the
         // source label needs to yield horizontal space to the trailing buttons;
-        // target label and footer should keep using the full row width so the
-        // time stamp still hugs the trailing edge.
+        // Source and target share the same trailing inset so they truncate at
+        // the same character width — otherwise rows look uneven when one side's
+        // text is short enough to fit the full row and the other isn't. Footer
+        // still uses the full width so the timestamp hugs the trailing edge.
         NSLayoutConstraint.activate([
             sourceLabel.topAnchor.constraint(equalTo: topAnchor, constant: 6),
             sourceLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
@@ -624,7 +626,7 @@ private final class HistoryRowCell: NSTableCellView {
 
             targetLabel.topAnchor.constraint(equalTo: sourceLabel.bottomAnchor, constant: 4),
             targetLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
-            targetLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            targetLabel.trailingAnchor.constraint(equalTo: favoriteButton.leadingAnchor, constant: -6),
 
             footer.topAnchor.constraint(equalTo: targetLabel.bottomAnchor, constant: 4),
             footer.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
