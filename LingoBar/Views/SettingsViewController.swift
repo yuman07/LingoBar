@@ -49,6 +49,9 @@ final class SettingsViewController: NSViewController {
 
         let recorder = KeyboardShortcuts.RecorderCocoa(for: .toggleTranslator)
         let recorderPill = RecorderPillBox(recorder: recorder)
+        // Slim the shortcut pill down so it visually matches the width budget
+        // of the 52pt timeout pill instead of stretching across the full row.
+        recorderPill.widthAnchor.constraint(equalToConstant: 88).isActive = true
 
         let launchRow = labeledRow(title: String(localized: "Launch at Login"), control: launchToggle)
         let shortcutRow = labeledRow(title: String(localized: "Toggle Translator"), control: recorderPill)
@@ -196,11 +199,19 @@ final class PillFieldBox: NSView {
         field.translatesAutoresizingMaskIntoConstraints = false
         addSubview(field)
 
+        // Pin the field's top/bottom to the pill's edges (not just centerY) so
+        // the inner control's intrinsic height can't overflow the pill — both
+        // pills need to render at exactly the outer heightAnchor so their
+        // corner-radius arcs line up visually.
+        field.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
+        field.setContentHuggingPriority(.defaultLow, for: .vertical)
+
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: 22),
             field.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 6),
             field.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -6),
-            field.centerYAnchor.constraint(equalTo: centerYAnchor),
+            field.topAnchor.constraint(equalTo: topAnchor),
+            field.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
     }
 
@@ -254,11 +265,18 @@ final class RecorderPillBox: NSView {
         recorder.translatesAutoresizingMaskIntoConstraints = false
         addSubview(recorder)
 
+        // Match PillFieldBox: force the recorder to share the pill's exact
+        // height so the rounded ends of both pills line up on the same
+        // baseline instead of each one rendering at its own intrinsic size.
+        recorder.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
+        recorder.setContentHuggingPriority(.defaultLow, for: .vertical)
+
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: 22),
             recorder.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 6),
             recorder.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -6),
-            recorder.centerYAnchor.constraint(equalTo: centerYAnchor),
+            recorder.topAnchor.constraint(equalTo: topAnchor),
+            recorder.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
     }
 
