@@ -69,18 +69,18 @@ final class SettingsViewController: NSViewController {
             launchRow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sideInset),
             launchRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sideInset),
 
-            shortcutRow.topAnchor.constraint(equalTo: launchRow.bottomAnchor),
-            shortcutRow.leadingAnchor.constraint(equalTo: launchRow.leadingAnchor),
-            shortcutRow.trailingAnchor.constraint(equalTo: launchRow.trailingAnchor),
-
-            timeoutRow.topAnchor.constraint(equalTo: shortcutRow.bottomAnchor),
+            timeoutRow.topAnchor.constraint(equalTo: launchRow.bottomAnchor),
             timeoutRow.leadingAnchor.constraint(equalTo: launchRow.leadingAnchor),
             timeoutRow.trailingAnchor.constraint(equalTo: launchRow.trailingAnchor),
 
-            // Engine section: pinned under the timeout row and stretched to
+            shortcutRow.topAnchor.constraint(equalTo: timeoutRow.bottomAnchor),
+            shortcutRow.leadingAnchor.constraint(equalTo: launchRow.leadingAnchor),
+            shortcutRow.trailingAnchor.constraint(equalTo: launchRow.trailingAnchor),
+
+            // Engine section: pinned under the shortcut row and stretched to
             // the panel bottom (minus a small cosmetic pad). The engine box
             // inside owns its own scroll view, so any overflow happens there.
-            enginesView.topAnchor.constraint(equalTo: timeoutRow.bottomAnchor, constant: 10),
+            enginesView.topAnchor.constraint(equalTo: shortcutRow.bottomAnchor, constant: 10),
             enginesView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sideInset),
             enginesView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sideInset),
             enginesView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -12),
