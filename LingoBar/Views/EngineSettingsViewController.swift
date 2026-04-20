@@ -59,7 +59,10 @@ final class EngineSettingsViewController: NSViewController {
             hint.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             hint.trailingAnchor.constraint(equalTo: view.trailingAnchor),
 
-            box.topAnchor.constraint(equalTo: hint.bottomAnchor, constant: 6),
+            // Keep the hint kissing the list (tiny 2pt gap) so they read as
+            // a single unit — label + rounded list below — instead of two
+            // unrelated pieces floating apart.
+            box.topAnchor.constraint(equalTo: hint.bottomAnchor, constant: 2),
             box.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             box.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             box.bottomAnchor.constraint(equalTo: view.bottomAnchor),

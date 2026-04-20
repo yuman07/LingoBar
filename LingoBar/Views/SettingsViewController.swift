@@ -80,7 +80,7 @@ final class SettingsViewController: NSViewController {
             // Engine section: pinned under the timeout row and stretched to
             // the panel bottom (minus a small cosmetic pad). The engine box
             // inside owns its own scroll view, so any overflow happens there.
-            enginesView.topAnchor.constraint(equalTo: timeoutRow.bottomAnchor, constant: 8),
+            enginesView.topAnchor.constraint(equalTo: timeoutRow.bottomAnchor, constant: 10),
             enginesView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sideInset),
             enginesView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sideInset),
             enginesView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -12),
@@ -142,7 +142,7 @@ final class SettingsViewController: NSViewController {
         container.addSubview(control)
 
         NSLayoutConstraint.activate([
-            container.heightAnchor.constraint(equalToConstant: 34),
+            container.heightAnchor.constraint(equalToConstant: 28),
             label.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             label.centerYAnchor.constraint(equalTo: container.centerYAnchor),
             control.leadingAnchor.constraint(equalTo: label.trailingAnchor, constant: 10),
