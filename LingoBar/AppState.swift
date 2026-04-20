@@ -13,11 +13,12 @@ final class AppState: ObservableObject {
     @Published var currentEngineType: TranslationEngineType = .apple
     @Published var isPanelPinned: Bool = false
 
-    /// Set to `true` while replaying a saved history record into input/output.
-    /// The `$inputText` subscriber checks this flag and skips kicking off a
-    /// debounced translation, so clicking a history row just shows the stored
-    /// result instead of silently re-issuing a fresh request.
-    var isRestoringHistory: Bool = false
+    /// Set to `true` while programmatically replaying content into input/output —
+    /// e.g. clicking a history row, or swapping the translation direction. The
+    /// `$inputText` subscriber checks this flag and skips kicking off a
+    /// debounced translation, so these manual writes show the intended content
+    /// instead of silently re-issuing a fresh request.
+    var isReplayingContent: Bool = false
 
     enum Tab: Sendable {
         case translate

@@ -41,6 +41,9 @@ final class TranslationViewController: NSViewController {
     private var outputCopyButton: CopyFeedbackButton!
     private var outputSpeakButton: NSButton!
     private var outputTextView: GrowingTextView!
+
+    // Swap row
+    private var swapButton: NSButton!
     private var outputBodySlot: NSView!
     private var errorLabel: NSTextField!
     private var errorContainer: NSView!
@@ -183,7 +186,7 @@ final class TranslationViewController: NSViewController {
         rightLine.boxType = .separator
         rightLine.translatesAutoresizingMaskIntoConstraints = false
 
-        let swapButton = makeIconButton("arrow.up.arrow.down") { [weak self] in
+        swapButton = makeIconButton("arrow.up.arrow.down") { [weak self] in
             self?.swapLanguages()
         }
         swapButton.toolTip = String(localized: "Swap languages")
@@ -379,7 +382,7 @@ final class TranslationViewController: NSViewController {
                 self.updateClearButtonState(input: text)
                 DispatchQueue.main.async { [weak self] in
                     guard let self else { return }
-                    if self.appState.isRestoringHistory { return }
+                    if self.appState.isReplayingContent { return }
                     self.manager.translateWithDebounce(appState: self.appState)
                 }
             }
@@ -402,6 +405,7 @@ final class TranslationViewController: NSViewController {
         state.$isTranslating
             .sink { [weak self] translating in
                 guard let self else { return }
+                self.swapButton.isEnabled = !translating
                 if translating {
                     self.progressIndicator.startAnimation(nil)
                     self.updateOutputVisibility(isTranslatingOverride: true)
@@ -457,7 +461,7 @@ final class TranslationViewController: NSViewController {
                 guard let self else { return }
                 DispatchQueue.main.async { [weak self] in
                     guard let self else { return }
-                    if self.appState.isRestoringHistory { return }
+                    if self.appState.isReplayingContent { return }
                     self.manager.translateWithDebounce(appState: self.appState)
                 }
             }
@@ -617,9 +621,21 @@ final class TranslationViewController: NSViewController {
         settings.sourceLanguage = oldTarget
         settings.targetLanguage = resolvedSource
 
+        // The swap is a display flip of an already-settled translation; we don't
+        // want the inputText write below to re-enter the debounced translate
+        // pipeline. The $inputText sink dispatches its trigger check onto the
+        // main queue, so we release the flag via a follow-up main-queue async.
+        appState.isReplayingContent = true
         let oldInput = appState.inputText
         appState.inputText = appState.outputText
         appState.outputText = oldInput
+        // Flipped content isn't a continuation of the previous history session;
+        // if the user edits afterward, that edit should start a fresh row
+        // rather than mutating the pre-swap record.
+        manager.endCurrentSession()
+        DispatchQueue.main.async { [weak self] in
+            self?.appState.isReplayingContent = false
+        }
     }
 
     @objc private func openTranslationSettings() {

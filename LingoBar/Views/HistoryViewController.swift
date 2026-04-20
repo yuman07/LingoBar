@@ -262,7 +262,7 @@ final class HistoryViewController: NSViewController {
         // check onto the main queue after the sink fires synchronously, so we
         // re-enable the flag via a follow-up main-queue async block —
         // guaranteed to run after every sink-scheduled block from this fill.
-        appState.isRestoringHistory = true
+        appState.isReplayingContent = true
         SharedEnvironment.shared.translationManager?.cancelTranslation()
         // Restoring a row isn't a continuation of whatever session was in
         // flight — if the user edits the restored text, that edit should
@@ -283,7 +283,7 @@ final class HistoryViewController: NSViewController {
         appState.error = nil
         appState.activeTab = .translate
         DispatchQueue.main.async { [weak self] in
-            self?.appState.isRestoringHistory = false
+            self?.appState.isReplayingContent = false
         }
     }
 }
