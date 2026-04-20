@@ -14,6 +14,7 @@ final class SettingsViewController: NSViewController {
     }
 
     private var navBar: NSView!
+    private var navBarHeight: NSLayoutConstraint!
     private var backButton: NSButton!
     private var navTitleLabel: NSTextField!
     private var navDivider: NSBox!
@@ -82,8 +83,9 @@ final class SettingsViewController: NSViewController {
         navBar.addSubview(navTitleLabel)
         navBar.addSubview(navDivider)
 
+        navBarHeight = navBar.heightAnchor.constraint(equalToConstant: 34)
         NSLayoutConstraint.activate([
-            navBar.heightAnchor.constraint(equalToConstant: 34),
+            navBarHeight,
             backButton.leadingAnchor.constraint(equalTo: navBar.leadingAnchor, constant: 8),
             backButton.centerYAnchor.constraint(equalTo: navBar.centerYAnchor),
             navTitleLabel.centerXAnchor.constraint(equalTo: navBar.centerXAnchor),
@@ -124,32 +126,25 @@ final class SettingsViewController: NSViewController {
         enginesRow.onClick = { [weak self] in self?.showPage(.engines, animated: true) }
 
         launchToggle = NSButton(checkboxWithTitle: "", target: self, action: #selector(launchToggled))
-
-        let grid = gridView([
-            [rowLabel(String(localized: "Launch at Login")), launchToggle],
-        ])
+        launchToggle.controlSize = .small
 
         let recorder = KeyboardShortcuts.RecorderCocoa(for: .toggleTranslator)
-        recorder.translatesAutoresizingMaskIntoConstraints = false
-        let shortcutGrid = gridView([
-            [rowLabel(String(localized: "Toggle Translator")), recorder],
-        ])
+        let recorderPill = RecorderPillBox(recorder: recorder)
 
-        let contentStack = NSStackView()
+        let launchRow = labeledRow(title: String(localized: "Launch at Login"), control: launchToggle)
+        let shortcutRow = labeledRow(title: String(localized: "Toggle Translator"), control: recorderPill)
+
+        let contentStack = NSStackView(views: [launchRow, shortcutRow, enginesRow])
         contentStack.orientation = .vertical
         contentStack.alignment = .leading
-        contentStack.spacing = 14
-        contentStack.edgeInsets = NSEdgeInsets(top: 12, left: 14, bottom: 12, right: 14)
+        contentStack.spacing = 4
+        contentStack.edgeInsets = NSEdgeInsets(top: 4, left: 12, bottom: 12, right: 12)
         contentStack.translatesAutoresizingMaskIntoConstraints = false
 
-        contentStack.addArrangedSubview(section(header: String(localized: "General"), body: grid))
-        contentStack.addArrangedSubview(separator())
-        contentStack.addArrangedSubview(section(header: String(localized: "Shortcut"), body: shortcutGrid))
-        contentStack.addArrangedSubview(separator())
-        contentStack.addArrangedSubview(enginesRow)
-
-        enginesRow.widthAnchor.constraint(equalTo: contentStack.widthAnchor,
-                                          constant: -(contentStack.edgeInsets.left + contentStack.edgeInsets.right)).isActive = true
+        let sideInsets = contentStack.edgeInsets.left + contentStack.edgeInsets.right
+        for row in [launchRow, shortcutRow, enginesRow!] {
+            row.widthAnchor.constraint(equalTo: contentStack.widthAnchor, constant: -sideInsets).isActive = true
+        }
 
         let flip = FlippedView()
         flip.translatesAutoresizingMaskIntoConstraints = false
@@ -180,55 +175,29 @@ final class SettingsViewController: NSViewController {
         ])
     }
 
-    private func section(header text: String, body: NSView) -> NSView {
-        let stack = NSStackView(views: [sectionHeader(text), body])
-        stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 8
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        return stack
-    }
+    /// Row with the title flush-left and the control sitting right after it.
+    /// Row leading edge matches the History tab's search field (view + 12).
+    private func labeledRow(title: String, control: NSView) -> NSView {
+        let label = NSTextField(labelWithString: title)
+        label.font = .preferredFont(forTextStyle: .body)
+        label.translatesAutoresizingMaskIntoConstraints = false
 
-    private func sectionHeader(_ text: String) -> NSTextField {
-        let f = NSTextField(labelWithString: text)
-        f.font = .boldSystemFont(ofSize: NSFont.systemFontSize)
-        return f
-    }
+        control.translatesAutoresizingMaskIntoConstraints = false
 
-    private func rowLabel(_ text: String) -> NSTextField {
-        let f = NSTextField(labelWithString: text)
-        f.alignment = .right
-        f.textColor = .secondaryLabelColor
-        return f
-    }
-
-    private func gridView(_ rows: [[NSView]]) -> NSGridView {
-        let grid = NSGridView(views: rows)
-        grid.columnSpacing = 10
-        grid.rowSpacing = 8
-        grid.column(at: 0).xPlacement = .trailing
-        grid.column(at: 1).xPlacement = .fill
-        grid.translatesAutoresizingMaskIntoConstraints = false
-        return grid
-    }
-
-    private func separator() -> NSView {
-        let line = NSBox()
-        line.boxType = .separator
-        line.translatesAutoresizingMaskIntoConstraints = false
-        line.heightAnchor.constraint(equalToConstant: 1).isActive = true
-        line.setContentHuggingPriority(.defaultLow, for: .horizontal)
         let container = NSView()
         container.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(line)
+        container.addSubview(label)
+        container.addSubview(control)
+
         NSLayoutConstraint.activate([
-            container.heightAnchor.constraint(equalTo: line.heightAnchor),
-            line.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            line.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            line.topAnchor.constraint(equalTo: container.topAnchor),
-            line.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            container.heightAnchor.constraint(equalToConstant: 34),
+            label.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            label.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            control.leadingAnchor.constraint(equalTo: label.trailingAnchor, constant: 10),
+            control.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            control.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor),
         ])
-        container.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        label.setContentCompressionResistancePriority(.required, for: .horizontal)
         return container
     }
 
@@ -243,11 +212,13 @@ final class SettingsViewController: NSViewController {
             backButton.isHidden = true
             navTitleLabel.stringValue = ""
             navDivider.isHidden = true
+            navBarHeight.constant = 0
         case .engines:
             targetChild = engineSettingsVC.view
             backButton.isHidden = false
             navTitleLabel.stringValue = String(localized: "Translation Engines")
             navDivider.isHidden = false
+            navBarHeight.constant = 34
         }
 
         // Purge and re-attach so the constraint set matches the current child.
@@ -344,10 +315,10 @@ final class NavigationRowButton: NSControl {
             backgroundView.leadingAnchor.constraint(equalTo: leadingAnchor),
             backgroundView.trailingAnchor.constraint(equalTo: trailingAnchor),
 
-            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
 
-            chevron.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
+            chevron.trailingAnchor.constraint(equalTo: trailingAnchor),
             chevron.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
     }
@@ -403,4 +374,65 @@ final class NavigationRowButton: NSControl {
 /// Flipped content view so NSScrollView lays out its document top-to-bottom.
 final class FlippedView: NSView {
     override var isFlipped: Bool { true }
+}
+
+/// Pill-shaped host for `KeyboardShortcuts.RecorderCocoa`. The stock recorder
+/// (an `NSSearchField` subclass) paints an opaque white bezel that fights the
+/// popover's vibrancy material. We strip the bezel off the recorder and draw
+/// our own translucent rounded background that matches the History tab's
+/// search field, so the two controls read as the same visual style.
+final class RecorderPillBox: NSView {
+    private let recorder: KeyboardShortcuts.RecorderCocoa
+
+    init(recorder: KeyboardShortcuts.RecorderCocoa) {
+        self.recorder = recorder
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+        layer?.cornerRadius = 11
+        layer?.cornerCurve = .continuous
+
+        recorder.isBezeled = false
+        recorder.isBordered = false
+        recorder.drawsBackground = false
+        recorder.focusRingType = .none
+        recorder.controlSize = .small
+        recorder.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        recorder.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(recorder)
+
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 22),
+            recorder.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 6),
+            recorder.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -6),
+            recorder.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    /// Same rationale as `SearchPillField`: opt this subtree out of vibrancy so
+    /// the caret and placeholder colors resolve straight from the label /
+    /// accent palette instead of a vibrancy-tinted variant.
+    override var allowsVibrancy: Bool { false }
+
+    override func updateLayer() {
+        super.updateLayer()
+        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil
+        layer?.backgroundColor = (isDark
+            ? NSColor(white: 1, alpha: 0.08)
+            : NSColor(white: 0, alpha: 0.05)).cgColor
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
+    /// Clicks on the pill padding around the recorder should still focus it,
+    /// matching how the stock search field bezel behaves.
+    override func mouseDown(with event: NSEvent) {
+        window?.makeFirstResponder(recorder)
+    }
 }
