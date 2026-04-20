@@ -145,6 +145,7 @@ final class TranslationViewController: NSViewController {
         inputTextView = GrowingTextView()
         inputTextView.translatesAutoresizingMaskIntoConstraints = false
         inputTextView.placeholder = String(localized: "Enter text")
+        inputTextView.maxVisibleHeight = maxTextHeight
         inputTextView.onTextChange = { [weak self] text in
             guard let self else { return }
             self.appState.inputText = text
@@ -247,6 +248,7 @@ final class TranslationViewController: NSViewController {
         outputTextView = GrowingTextView()
         outputTextView.translatesAutoresizingMaskIntoConstraints = false
         outputTextView.isEditable = false
+        outputTextView.maxVisibleHeight = maxTextHeight
         outputTextView.onHeightChange = { [weak self] h in
             guard let self else { return }
             let clamped = min(max(h, self.minTextHeight), self.maxTextHeight)

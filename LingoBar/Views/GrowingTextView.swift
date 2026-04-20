@@ -31,6 +31,16 @@ final class GrowingTextView: NSView {
         didSet { textView.isEditable = isEditable }
     }
 
+    /// External clamp on how tall this view can get. Used to decide whether a
+    /// vertical scroller is actually needed — when content fits within the
+    /// clamp, we keep `hasVerticalScroller` off so AppKit has no scroller to
+    /// fade in when the panel reopens. `autohidesScrollers` alone is not
+    /// enough: overlay scrollers can still flash during layout / window
+    /// visibility transitions.
+    var maxVisibleHeight: CGFloat = .greatestFiniteMagnitude {
+        didSet { syncScrollerVisibility() }
+    }
+
     override init(frame: NSRect) {
         let textView = FocusableTextView(frame: .zero)
         let scrollView = QuietScrollView()
@@ -60,7 +70,7 @@ final class GrowingTextView: NSView {
 
     private func configureScrollView() {
         scrollView.drawsBackground = false
-        scrollView.hasVerticalScroller = true
+        scrollView.hasVerticalScroller = false
         scrollView.autohidesScrollers = true
         scrollView.borderType = .noBorder
         scrollView.verticalScrollElasticity = .allowed
@@ -120,6 +130,14 @@ final class GrowingTextView: NSView {
         guard rounded != lastReportedHeight else { return }
         lastReportedHeight = rounded
         onHeightChange?(rounded)
+        syncScrollerVisibility()
+    }
+
+    private func syncScrollerVisibility() {
+        let needs = lastReportedHeight > maxVisibleHeight
+        if scrollView.hasVerticalScroller != needs {
+            scrollView.hasVerticalScroller = needs
+        }
     }
 }
 
