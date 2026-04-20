@@ -83,7 +83,10 @@ final class SettingsViewController: NSViewController {
             enginesView.topAnchor.constraint(equalTo: timeoutRow.bottomAnchor, constant: 10),
             enginesView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sideInset),
             enginesView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sideInset),
-            enginesView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -12),
+            // Mirror the 2pt gap between the hint and the list so the box
+            // sits an equal distance from the footnote above and the panel
+            // edge below — the list reads as centered in its breathing room.
+            enginesView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -2),
 
             view.heightAnchor.constraint(equalToConstant: 280),
         ])
