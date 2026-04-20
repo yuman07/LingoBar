@@ -14,14 +14,6 @@ final class SettingsViewController: NSViewController {
     private var retentionLabel: NSTextField!
     private var failoverToggle: NSButton!
 
-    private var googleKey: NSSecureTextField!
-    private var msKey: NSSecureTextField!
-    private var msRegion: NSTextField!
-    private var baiduId: NSTextField!
-    private var baiduSecret: NSSecureTextField!
-    private var youdaoKey: NSTextField!
-    private var youdaoSecret: NSSecureTextField!
-
     private var cancellables: Set<AnyCancellable> = []
 
     private var settings: AppSettings { SharedEnvironment.shared.appSettings! }
@@ -40,7 +32,6 @@ final class SettingsViewController: NSViewController {
         retentionStepper.integerValue = settings.contentRetentionSeconds
         updateRetentionLabel()
         failoverToggle.state = settings.failoverEnabled ? .on : .off
-        loadKeychainFields()
     }
 
     // MARK: - Layout
@@ -58,8 +49,6 @@ final class SettingsViewController: NSViewController {
         contentStack.addArrangedSubview(makeShortcutSection())
         contentStack.addArrangedSubview(separator())
         contentStack.addArrangedSubview(makeAdvancedSection())
-        contentStack.addArrangedSubview(separator())
-        contentStack.addArrangedSubview(makeAPIKeysSection())
 
         let flip = FlippedView()
         flip.translatesAutoresizingMaskIntoConstraints = false
@@ -143,64 +132,6 @@ final class SettingsViewController: NSViewController {
         return section(header: String(localized: "Advanced"), body: grid)
     }
 
-    private func makeAPIKeysSection() -> NSView {
-        googleKey = secureField()
-        msKey = secureField()
-        msRegion = plainField()
-        baiduId = plainField()
-        baiduSecret = secureField()
-        youdaoKey = plainField()
-        youdaoSecret = secureField()
-
-        let googleGrid = gridView([
-            [rowLabel("API Key"), googleKey],
-        ])
-        let msGrid = gridView([
-            [rowLabel("API Key"), msKey],
-            [rowLabel("Region"), msRegion],
-        ])
-        let baiduGrid = gridView([
-            [rowLabel("App ID"), baiduId],
-            [rowLabel("Secret Key"), baiduSecret],
-        ])
-        let youdaoGrid = gridView([
-            [rowLabel("App Key"), youdaoKey],
-            [rowLabel("Secret Key"), youdaoSecret],
-        ])
-
-        let stack = NSStackView(views: [
-            sectionHeader(String(localized: "API Keys")),
-            subHeader("Google Translate"),
-            googleGrid,
-            subHeader("Microsoft Translator"),
-            msGrid,
-            subHeader("Baidu Translate"),
-            baiduGrid,
-            subHeader("Youdao Translate"),
-            youdaoGrid,
-        ])
-        stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 8
-        stack.translatesAutoresizingMaskIntoConstraints = false
-
-        let bindings: [(NSTextField, String)] = [
-            (googleKey, "google_api_key"),
-            (msKey, "microsoft_api_key"),
-            (msRegion, "microsoft_region"),
-            (baiduId, "baidu_app_id"),
-            (baiduSecret, "baidu_secret"),
-            (youdaoKey, "youdao_app_key"),
-            (youdaoSecret, "youdao_secret"),
-        ]
-        for (field, key) in bindings {
-            field.target = self
-            field.action = #selector(fieldChanged(_:))
-            objc_setAssociatedObject(field, &AssocKey.keyName, key, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        }
-        return stack
-    }
-
     // MARK: - Helpers
 
     private func section(header text: String, body: NSView) -> NSView {
@@ -215,13 +146,6 @@ final class SettingsViewController: NSViewController {
     private func sectionHeader(_ text: String) -> NSTextField {
         let f = NSTextField(labelWithString: text)
         f.font = .boldSystemFont(ofSize: NSFont.systemFontSize)
-        return f
-    }
-
-    private func subHeader(_ text: String) -> NSTextField {
-        let f = NSTextField(labelWithString: text)
-        f.font = .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold)
-        f.textColor = .secondaryLabelColor
         return f
     }
 
@@ -265,41 +189,13 @@ final class SettingsViewController: NSViewController {
         return container
     }
 
-    private func plainField() -> NSTextField {
-        let f = NSTextField()
-        f.translatesAutoresizingMaskIntoConstraints = false
-        f.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        return f
-    }
-
-    private func secureField() -> NSSecureTextField {
-        let f = NSSecureTextField()
-        f.translatesAutoresizingMaskIntoConstraints = false
-        f.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        return f
-    }
-
     // MARK: - Engine options
 
     private func refreshEngineOptions() {
         enginePopup.removeAllItems()
-        enginePopup.addItem(withTitle: "Apple")
-        enginePopup.lastItem?.representedObject = TranslationEngineType.apple
-        if KeychainService.load(key: "google_api_key") != nil {
-            enginePopup.addItem(withTitle: "Google")
-            enginePopup.lastItem?.representedObject = TranslationEngineType.google
-        }
-        if KeychainService.load(key: "microsoft_api_key") != nil {
-            enginePopup.addItem(withTitle: "Microsoft")
-            enginePopup.lastItem?.representedObject = TranslationEngineType.microsoft
-        }
-        if KeychainService.load(key: "baidu_app_id") != nil {
-            enginePopup.addItem(withTitle: "Baidu")
-            enginePopup.lastItem?.representedObject = TranslationEngineType.baidu
-        }
-        if KeychainService.load(key: "youdao_app_key") != nil {
-            enginePopup.addItem(withTitle: "Youdao")
-            enginePopup.lastItem?.representedObject = TranslationEngineType.youdao
+        for engine in TranslationEngineType.allCases {
+            enginePopup.addItem(withTitle: engine.displayName)
+            enginePopup.lastItem?.representedObject = engine
         }
         for i in 0..<enginePopup.numberOfItems {
             if let e = enginePopup.item(at: i)?.representedObject as? TranslationEngineType,
@@ -308,16 +204,6 @@ final class SettingsViewController: NSViewController {
                 break
             }
         }
-    }
-
-    private func loadKeychainFields() {
-        googleKey.stringValue = KeychainService.load(key: "google_api_key") ?? ""
-        msKey.stringValue = KeychainService.load(key: "microsoft_api_key") ?? ""
-        msRegion.stringValue = KeychainService.load(key: "microsoft_region") ?? ""
-        baiduId.stringValue = KeychainService.load(key: "baidu_app_id") ?? ""
-        baiduSecret.stringValue = KeychainService.load(key: "baidu_secret") ?? ""
-        youdaoKey.stringValue = KeychainService.load(key: "youdao_app_key") ?? ""
-        youdaoSecret.stringValue = KeychainService.load(key: "youdao_secret") ?? ""
     }
 
     // MARK: - Actions
@@ -362,19 +248,6 @@ final class SettingsViewController: NSViewController {
     @objc private func failoverToggled() {
         settings.failoverEnabled = failoverToggle.state == .on
     }
-
-    @objc private func fieldChanged(_ sender: NSTextField) {
-        guard let key = objc_getAssociatedObject(sender, &AssocKey.keyName) as? String else { return }
-        let value = sender.stringValue
-        if value.isEmpty {
-            try? KeychainService.delete(key: key)
-        } else {
-            try? KeychainService.save(key: key, value: value)
-        }
-        refreshEngineOptions()
-    }
-
-    private enum AssocKey { nonisolated(unsafe) static var keyName: UInt8 = 0 }
 }
 
 /// Flipped content view so NSScrollView lays out its document top-to-bottom.

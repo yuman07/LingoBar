@@ -3,9 +3,6 @@ import Foundation
 enum TranslationEngineType: String, CaseIterable, Codable, Sendable, Identifiable {
     case apple
     case google
-    case microsoft
-    case baidu
-    case youdao
 
     var id: String { rawValue }
 
@@ -13,9 +10,6 @@ enum TranslationEngineType: String, CaseIterable, Codable, Sendable, Identifiabl
         switch self {
         case .apple: "Apple"
         case .google: "Google"
-        case .microsoft: "Microsoft"
-        case .baidu: "Baidu"
-        case .youdao: "Youdao"
         }
     }
 
@@ -23,9 +17,6 @@ enum TranslationEngineType: String, CaseIterable, Codable, Sendable, Identifiabl
         switch self {
         case .apple: "apple.logo"
         case .google: "g.circle.fill"
-        case .microsoft: "m.circle.fill"
-        case .baidu: "b.circle.fill"
-        case .youdao: "y.circle.fill"
         }
     }
 }

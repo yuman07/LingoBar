@@ -11,9 +11,6 @@ final class TranslationManager {
     let appleEngine = AppleTranslationEngine()
     private let thirdPartyEngines: [TranslationEngineType: any TranslationEngineProtocol] = [
         .google: GoogleTranslationEngine(),
-        .microsoft: MicrosoftTranslationEngine(),
-        .baidu: BaiduTranslationEngine(),
-        .youdao: YoudaoTranslationEngine(),
     ]
     private var debounceTask: Task<Void, Never>?
     private let historyLimit = 100
@@ -222,20 +219,11 @@ final class TranslationManager {
         return false
     }
 
+    /// Third-party engines that are currently usable. The web-based Google
+    /// engine needs no credentials, so it's always in the list; Apple is
+    /// handled separately as the built-in default and final fallback.
     private func configuredThirdPartyEngines() -> [TranslationEngineType] {
-        TranslationEngineType.allCases.filter { engine in
-            engine != .apple && hasCredentials(for: engine)
-        }
-    }
-
-    private func hasCredentials(for engine: TranslationEngineType) -> Bool {
-        switch engine {
-        case .apple: true
-        case .google: KeychainService.load(key: "google_api_key") != nil
-        case .microsoft: KeychainService.load(key: "microsoft_api_key") != nil
-        case .baidu: KeychainService.load(key: "baidu_app_id") != nil
-        case .youdao: KeychainService.load(key: "youdao_app_key") != nil
-        }
+        TranslationEngineType.allCases.filter { $0 != .apple }
     }
 
     // MARK: - Apple Translation result handlers (called from .translationTask)
