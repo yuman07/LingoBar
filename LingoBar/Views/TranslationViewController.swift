@@ -459,8 +459,9 @@ final class TranslationViewController: NSViewController {
         settings.$selectedEngine
             .removeDuplicates()
             .dropFirst()
-            .sink { [weak self] _ in
+            .sink { [weak self] engineType in
                 guard let self else { return }
+                self.updateEngineIndicator(engineType)
                 DispatchQueue.main.async { [weak self] in
                     guard let self else { return }
                     if self.appState.isReplayingContent { return }
