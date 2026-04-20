@@ -16,13 +16,6 @@ final class AppSettings: ObservableObject {
         }
     }
 
-    @Published var contentRetentionSeconds: Int {
-        didSet {
-            defaults.set(contentRetentionSeconds, forKey: Keys.contentRetention)
-            notify()
-        }
-    }
-
     @Published var sourceLanguage: SupportedLanguage {
         didSet {
             defaults.set(sourceLanguage.rawValue, forKey: Keys.sourceLanguage)
@@ -47,7 +40,6 @@ final class AppSettings: ObservableObject {
     init() {
         let d = UserDefaults.standard
         selectedEngine = TranslationEngineType(rawValue: d.string(forKey: Keys.selectedEngine) ?? "") ?? .apple
-        contentRetentionSeconds = d.object(forKey: Keys.contentRetention) as? Int ?? 60
         sourceLanguage = SupportedLanguage(rawValue: d.string(forKey: Keys.sourceLanguage) ?? "") ?? .auto
         targetLanguage = SupportedLanguage(rawValue: d.string(forKey: Keys.targetLanguage) ?? "") ?? .english
         failoverEnabled = d.object(forKey: Keys.failoverEnabled) as? Bool ?? true
@@ -69,7 +61,6 @@ final class AppSettings: ObservableObject {
 
     private enum Keys {
         static let selectedEngine = "selectedEngine"
-        static let contentRetention = "contentRetention"
         static let sourceLanguage = "sourceLanguage"
         static let targetLanguage = "targetLanguage"
         static let failoverEnabled = "failoverEnabled"

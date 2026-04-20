@@ -10,8 +10,6 @@ final class SettingsViewController: NSViewController {
     private var enginePopup: NSPopUpButton!
     private var launchToggle: NSButton!
 
-    private var retentionStepper: NSStepper!
-    private var retentionLabel: NSTextField!
     private var failoverToggle: NSButton!
 
     private var cancellables: Set<AnyCancellable> = []
@@ -29,8 +27,6 @@ final class SettingsViewController: NSViewController {
         super.viewWillAppear()
         refreshEngineOptions()
         launchToggle.state = SMAppService.mainApp.status == .enabled ? .on : .off
-        retentionStepper.integerValue = settings.contentRetentionSeconds
-        updateRetentionLabel()
         failoverToggle.state = settings.failoverEnabled ? .on : .off
     }
 
@@ -104,29 +100,11 @@ final class SettingsViewController: NSViewController {
     }
 
     private func makeAdvancedSection() -> NSView {
-        retentionStepper = NSStepper()
-        retentionStepper.minValue = 0
-        retentionStepper.maxValue = 600
-        retentionStepper.increment = 10
-        retentionStepper.target = self
-        retentionStepper.action = #selector(retentionChanged)
-        retentionStepper.translatesAutoresizingMaskIntoConstraints = false
-
-        retentionLabel = NSTextField(labelWithString: "")
-        retentionLabel.textColor = .secondaryLabelColor
-        retentionLabel.alignment = .left
-        retentionLabel.translatesAutoresizingMaskIntoConstraints = false
-
-        let retentionRow = NSStackView(views: [retentionLabel, retentionStepper])
-        retentionRow.orientation = .horizontal
-        retentionRow.spacing = 6
-
         failoverToggle = NSButton(checkboxWithTitle: String(localized: "Auto-switch engine on failure"),
                                   target: self,
                                   action: #selector(failoverToggled))
 
         let grid = gridView([
-            [rowLabel(String(localized: "Content Retention")), retentionRow],
             [NSView(), failoverToggle],
         ])
         return section(header: String(localized: "Advanced"), body: grid)
@@ -225,24 +203,6 @@ final class SettingsViewController: NSViewController {
         } catch {
             launchToggle.state = SMAppService.mainApp.status == .enabled ? .on : .off
         }
-    }
-
-    @objc private func retentionChanged() {
-        settings.contentRetentionSeconds = retentionStepper.integerValue
-        updateRetentionLabel()
-    }
-
-    private func updateRetentionLabel() {
-        let s = settings.contentRetentionSeconds
-        let text: String
-        if s == 0 {
-            text = String(localized: "Clear immediately")
-        } else if s < 60 {
-            text = "\(s)s"
-        } else {
-            text = "\(s / 60)m"
-        }
-        retentionLabel.stringValue = text
     }
 
     @objc private func failoverToggled() {

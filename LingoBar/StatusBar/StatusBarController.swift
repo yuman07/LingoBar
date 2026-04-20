@@ -122,22 +122,20 @@ final class StatusBarController {
 
     // MARK: - Content Retention
 
+    private static let contentRetentionSeconds: Int = 180
+
     private func windowWillOpen() {
         retentionTask?.cancel()
         retentionTask = nil
     }
 
     private func windowDidClose() {
-        let seconds = appSettings.contentRetentionSeconds
-        if seconds == 0 {
-            appState.clearContent()
-            return
-        }
         retentionTask?.cancel()
-        retentionTask = Task {
-            try? await Task.sleep(for: .seconds(seconds))
+        retentionTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(Self.contentRetentionSeconds))
             guard !Task.isCancelled else { return }
-            appState.clearContent()
+            self?.appState.clearContent()
+            self?.appState.activeTab = .translate
         }
         appSettings.saveLanguages(from: appState)
     }

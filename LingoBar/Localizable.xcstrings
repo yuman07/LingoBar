@@ -291,20 +291,6 @@
         }
       }
     },
-    "Content Retention" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : { "state" : "translated", "value" : "内容保留时间" }
-        }
-      }
-    },
-    "Clear immediately" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : { "state" : "translated", "value" : "立即清空" }
-        }
-      }
-    },
     "Auto-switch engine on failure" : {
       "localizations" : {
         "zh-Hans" : {
