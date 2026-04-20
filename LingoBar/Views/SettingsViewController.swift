@@ -86,7 +86,7 @@ final class SettingsViewController: NSViewController {
             enginesView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sideInset),
             enginesView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -12),
 
-            view.heightAnchor.constraint(equalToConstant: 400),
+            view.heightAnchor.constraint(equalToConstant: 280),
         ])
     }
 
