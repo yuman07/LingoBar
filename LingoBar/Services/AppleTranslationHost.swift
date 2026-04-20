@@ -8,8 +8,6 @@ import SwiftUI
 /// so the rest of the app can stay pure AppKit.
 struct AppleTranslationHostView: View {
     @Bindable var engine: AppleTranslationEngine
-    let onResult: (String, SupportedLanguage?) -> Void
-    let onError: (any Error) -> Void
 
     var body: some View {
         Color.clear
@@ -21,9 +19,9 @@ struct AppleTranslationHostView: View {
                     let detected = response.sourceLanguage.languageCode.map {
                         SupportedLanguage.from(nlLanguageCode: $0.identifier)
                     }
-                    onResult(response.targetText, detected)
+                    engine.handleResult(translatedText: response.targetText, detectedSource: detected)
                 } catch {
-                    onError(error)
+                    engine.handleError(error)
                 }
             }
     }
@@ -34,26 +32,10 @@ final class AppleTranslationHost {
     private let hostingView: NSHostingView<AppleTranslationHostView>
 
     init() {
-        guard let manager = SharedEnvironment.shared.translationManager,
-              let appState = SharedEnvironment.shared.appState else {
-            fatalError("AppleTranslationHost requires manager/state configured first")
+        guard let manager = SharedEnvironment.shared.translationManager else {
+            fatalError("AppleTranslationHost requires translation manager configured first")
         }
-
-        let view = AppleTranslationHostView(
-            engine: manager.appleEngine,
-            onResult: { text, detected in
-                MainActor.assumeIsolated {
-                    manager.handleTranslationResult(
-                        response: text, detectedSource: detected, appState: appState
-                    )
-                }
-            },
-            onError: { error in
-                MainActor.assumeIsolated {
-                    manager.handleTranslationError(error, appState: appState)
-                }
-            }
-        )
+        let view = AppleTranslationHostView(engine: manager.appleEngine)
         hostingView = NSHostingView(rootView: view)
         hostingView.frame = NSRect(x: -10, y: -10, width: 1, height: 1)
         hostingView.translatesAutoresizingMaskIntoConstraints = true

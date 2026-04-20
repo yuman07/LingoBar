@@ -20,6 +20,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         settings.loadSavedLanguages(into: appState)
+        if let first = settings.engineList.first {
+            appState.currentEngineType = first
+        }
 
         let updaterController = SPUStandardUpdaterController(
             startingUpdater: true,

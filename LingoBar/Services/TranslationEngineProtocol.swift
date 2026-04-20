@@ -27,7 +27,7 @@ struct TranslationResult: Sendable {
     let engineType: TranslationEngineType
 }
 
-enum TranslationError: Sendable, Equatable {
+enum TranslationError: Error, Sendable, Equatable {
     case languagePackNotInstalled([SupportedLanguage])
     case unsupportedLanguagePair
     case allEnginesFailed

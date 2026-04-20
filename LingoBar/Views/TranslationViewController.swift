@@ -456,15 +456,32 @@ final class TranslationViewController: NSViewController {
             }
             .store(in: &cancellables)
 
-        settings.$selectedEngine
+        settings.$engineList
             .removeDuplicates()
             .dropFirst()
-            .sink { [weak self] engineType in
+            .sink { [weak self] list in
                 guard let self else { return }
-                // Drive the icon via currentEngineType (its single source of
-                // truth) so the later failover write from .apple→.apple isn't
-                // filtered by removeDuplicates and the icon tracks reality.
-                self.appState.currentEngineType = engineType
+                // Snap the engine tag to the new list head so the indicator
+                // reflects what the next translation will try first. The
+                // actual winning engine will overwrite this in the sink for
+                // `state.$currentEngineType` once the chain completes.
+                if let first = list.first,
+                   !list.contains(self.appState.currentEngineType) || self.appState.inputText.isEmpty {
+                    self.appState.currentEngineType = first
+                }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self else { return }
+                    if self.appState.isReplayingContent { return }
+                    self.manager.translateWithDebounce(appState: self.appState)
+                }
+            }
+            .store(in: &cancellables)
+
+        settings.$engineTimeoutSeconds
+            .removeDuplicates()
+            .dropFirst()
+            .sink { [weak self] _ in
+                guard let self else { return }
                 DispatchQueue.main.async { [weak self] in
                     guard let self else { return }
                     if self.appState.isReplayingContent { return }

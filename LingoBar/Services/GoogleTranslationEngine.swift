@@ -6,6 +6,11 @@ import Foundation
 /// a nested JSON array: `[[[translated, source, ...], ...], ..., detectedLang, ...]`.
 struct GoogleTranslationEngine: TranslationEngineProtocol {
     let engineType: TranslationEngineType = .google
+    let timeout: TimeInterval
+
+    init(timeout: TimeInterval = 5) {
+        self.timeout = timeout
+    }
 
     func translate(
         text: String,
@@ -22,7 +27,7 @@ struct GoogleTranslationEngine: TranslationEngineProtocol {
         ]
 
         var request = URLRequest(url: components.url!)
-        request.timeoutInterval = 5
+        request.timeoutInterval = timeout
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw EngineError.networkError
@@ -87,12 +92,14 @@ enum EngineError: Error, LocalizedError {
     case networkError
     case apiError(Int)
     case parseError
+    case timedOut
 
     var errorDescription: String? {
         switch self {
         case .networkError: String(localized: "Network error. Please check your connection.")
         case .apiError(let code): String(localized: "API error (code: \(code)).")
         case .parseError: String(localized: "Failed to parse translation response.")
+        case .timedOut: String(localized: "Translation request timed out.")
         }
     }
 }

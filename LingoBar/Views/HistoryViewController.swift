@@ -257,7 +257,7 @@ final class HistoryViewController: NSViewController {
     }
 
     private func openRecord(_ record: TranslationRecord) {
-        // Flag the $inputText / $selectedEngine subscribers to skip translation
+        // Flag the $inputText / $engineList subscribers to skip translation
         // for this tick. Those subscribers dispatch their "should I translate?"
         // check onto the main queue after the sink fires synchronously, so we
         // re-enable the flag via a follow-up main-queue async block —
@@ -274,7 +274,6 @@ final class HistoryViewController: NSViewController {
         appState.targetLanguage = record.target
         settings?.sourceLanguage = record.source
         settings?.targetLanguage = record.target
-        settings?.selectedEngine = record.engine
 
         appState.inputText = record.sourceText
         appState.outputText = record.targetText

@@ -263,14 +263,7 @@
         }
       }
     },
-    "Advanced" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : { "state" : "translated", "value" : "高级" }
-        }
-      }
-    },
-    "Translation Engine" : {
+    "Translation Engines" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : { "state" : "translated", "value" : "翻译引擎" }
@@ -291,10 +284,66 @@
         }
       }
     },
-    "Auto-switch engine on failure" : {
+    "Priority" : {
       "localizations" : {
         "zh-Hans" : {
-          "stringUnit" : { "state" : "translated", "value" : "引擎失败时自动切换" }
+          "stringUnit" : { "state" : "translated", "value" : "优先级" }
+        }
+      }
+    },
+    "Timeout" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "超时" }
+        }
+      }
+    },
+    "Add Engine" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "添加引擎" }
+        }
+      }
+    },
+    "Request timeout" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "请求超时" }
+        }
+      }
+    },
+    "seconds" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "秒" }
+        }
+      }
+    },
+    "Settings" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "设置" }
+        }
+      }
+    },
+    "Translations try engines top-to-bottom; drag to reorder." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "翻译时按列表从上到下依次尝试，拖拽即可调整顺序。" }
+        }
+      }
+    },
+    "Apple translation engine is not available." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "Apple 翻译引擎不可用。" }
+        }
+      }
+    },
+    "Translation request timed out." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "翻译请求超时。" }
         }
       }
     },

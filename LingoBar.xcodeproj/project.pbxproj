@@ -13,6 +13,7 @@
 		2BFE506EC0C5EC6DE7D4F141 /* TTSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F09A0C8C82FB162A76693446 /* TTSService.swift */; };
 		35B385153EA954CB677174EA /* KeyboardShortcutNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79C8E094A76B63C6091A3590 /* KeyboardShortcutNames.swift */; };
 		3A08D0A58805DEA0C8309A0B /* TranslationViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95C5D1E44701F1BEA5B40DD3 /* TranslationViewController.swift */; };
+		B1B1CAFE1A2B3C4D5E6F7A01 /* EngineSettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1CAFE1A2B3C4D5E6F7A02 /* EngineSettingsViewController.swift */; };
 		4AD45CE2FD8CD4FC171FF397 /* LanguagePopUpButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91BCA0A029DAB6CCF713644D /* LanguagePopUpButton.swift */; };
 		7B1CA0051A2B3C4D5E6F7A05 /* StatusBarPopoverPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1CA0061A2B3C4D5E6F7A06 /* StatusBarPopoverPanel.swift */; };
 		6275FBE80F35FAD1545D2E53 /* AppleTranslationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92375AEE639DC4A151AF8B1C /* AppleTranslationEngine.swift */; };
@@ -52,6 +53,7 @@
 		94010C6E2A6AD2DBED122DA2 /* TranslationEngineProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationEngineProtocol.swift; sourceTree = "<group>"; };
 		94F6991EFB9E9619C3697198 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		95C5D1E44701F1BEA5B40DD3 /* TranslationViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationViewController.swift; sourceTree = "<group>"; };
+		B1B1CAFE1A2B3C4D5E6F7A02 /* EngineSettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineSettingsViewController.swift; sourceTree = "<group>"; };
 		9B5CA0021A2B3C4D5E6F7A02 /* GrowingTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrowingTextView.swift; sourceTree = "<group>"; };
 		C83635AFD914DC00A671E2DB /* TranslationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationManager.swift; sourceTree = "<group>"; };
 		D8A64AABB61630466EC570E5 /* TranslationRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationRecord.swift; sourceTree = "<group>"; };
@@ -150,6 +152,7 @@
 				91BCA0A029DAB6CCF713644D /* LanguagePopUpButton.swift */,
 				9B5CA0021A2B3C4D5E6F7A02 /* GrowingTextView.swift */,
 				1E5537D336DEEC1B936D96B3 /* SettingsViewController.swift */,
+				B1B1CAFE1A2B3C4D5E6F7A02 /* EngineSettingsViewController.swift */,
 				95C5D1E44701F1BEA5B40DD3 /* TranslationViewController.swift */,
 			);
 			path = Views;
@@ -252,6 +255,7 @@
 				4AD45CE2FD8CD4FC171FF397 /* LanguagePopUpButton.swift in Sources */,
 				7E6D8211640D60AFFC114E53 /* LingoBarApp.swift in Sources */,
 				22F21DC20CE4BC72D001AC36 /* SettingsViewController.swift in Sources */,
+				B1B1CAFE1A2B3C4D5E6F7A01 /* EngineSettingsViewController.swift in Sources */,
 				80C8B5D6E2DD4F2F6ABAC7F3 /* StatusBarController.swift in Sources */,
 				7B1CA0051A2B3C4D5E6F7A05 /* StatusBarPopoverPanel.swift in Sources */,
 				D36764E81560BF9C0968BF14 /* SupportedLanguage.swift in Sources */,
