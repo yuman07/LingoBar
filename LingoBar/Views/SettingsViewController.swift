@@ -1,5 +1,4 @@
 import AppKit
-import Combine
 import KeyboardShortcuts
 import ServiceManagement
 
@@ -27,7 +26,6 @@ final class SettingsViewController: NSViewController {
 
     private let engineSettingsVC = EngineSettingsViewController()
 
-    private var cancellables: Set<AnyCancellable> = []
     private var currentPage: Page = .root
 
     private var settings: AppSettings { SharedEnvironment.shared.appSettings! }
@@ -42,20 +40,11 @@ final class SettingsViewController: NSViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         addChild(engineSettingsVC)
-
-        settings.$engineList
-            .sink { [weak self] _ in
-                DispatchQueue.main.async { [weak self] in
-                    self?.updateEnginesRowSummary()
-                }
-            }
-            .store(in: &cancellables)
     }
 
     override func viewWillAppear() {
         super.viewWillAppear()
         launchToggle.state = SMAppService.mainApp.status == .enabled ? .on : .off
-        updateEnginesRowSummary()
         // Always start on root when re-entering the Settings tab so the user
         // isn't stranded on a detail page they navigated away from last time.
         showPage(.root, animated: false)
@@ -153,10 +142,11 @@ final class SettingsViewController: NSViewController {
         contentStack.edgeInsets = NSEdgeInsets(top: 12, left: 14, bottom: 12, right: 14)
         contentStack.translatesAutoresizingMaskIntoConstraints = false
 
-        contentStack.addArrangedSubview(section(header: String(localized: "General"),
-                                                body: stackRows([enginesRow, grid])))
+        contentStack.addArrangedSubview(section(header: String(localized: "General"), body: grid))
         contentStack.addArrangedSubview(separator())
         contentStack.addArrangedSubview(section(header: String(localized: "Shortcut"), body: shortcutGrid))
+        contentStack.addArrangedSubview(separator())
+        contentStack.addArrangedSubview(enginesRow)
 
         enginesRow.widthAnchor.constraint(equalTo: contentStack.widthAnchor,
                                           constant: -(contentStack.edgeInsets.left + contentStack.edgeInsets.right)).isActive = true
@@ -188,15 +178,6 @@ final class SettingsViewController: NSViewController {
             contentStack.bottomAnchor.constraint(equalTo: flip.bottomAnchor),
             flip.widthAnchor.constraint(equalTo: scroll.widthAnchor),
         ])
-    }
-
-    private func stackRows(_ views: [NSView]) -> NSView {
-        let stack = NSStackView(views: views)
-        stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 8
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        return stack
     }
 
     private func section(header text: String, body: NSView) -> NSView {
@@ -311,27 +292,14 @@ final class SettingsViewController: NSViewController {
         }
     }
 
-    private func updateEnginesRowSummary() {
-        let names = settings.engineList.map(\.displayName).joined(separator: ", ")
-        enginesRow.detailText = names.isEmpty ? "—" : names
-    }
 }
 
-/// Apple-style row: left label, right secondary detail + chevron. Acts as a
-/// button (hover highlight, click dispatches). Used to navigate into the
-/// engines sub-page.
+/// Apple-style row: left label, right chevron. Acts as a button (hover
+/// highlight, click dispatches). Used to navigate into the engines sub-page.
 final class NavigationRowButton: NSControl {
     var onClick: (() -> Void)?
 
-    var detailText: String = "" {
-        didSet {
-            detailLabel.stringValue = detailText
-            detailLabel.isHidden = detailText.isEmpty
-        }
-    }
-
     private let titleLabel = NSTextField(labelWithString: "")
-    private let detailLabel = NSTextField(labelWithString: "")
     private let chevron = NSImageView()
     private let backgroundView = NSView()
 
@@ -359,12 +327,6 @@ final class NavigationRowButton: NSControl {
         titleLabel.font = .preferredFont(forTextStyle: .body)
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        detailLabel.textColor = .secondaryLabelColor
-        detailLabel.font = .preferredFont(forTextStyle: .body)
-        detailLabel.lineBreakMode = .byTruncatingTail
-        detailLabel.alignment = .right
-        detailLabel.translatesAutoresizingMaskIntoConstraints = false
-
         chevron.image = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)
         chevron.symbolConfiguration = .init(pointSize: 11, weight: .semibold)
         chevron.contentTintColor = .tertiaryLabelColor
@@ -372,7 +334,6 @@ final class NavigationRowButton: NSControl {
 
         addSubview(backgroundView)
         addSubview(titleLabel)
-        addSubview(detailLabel)
         addSubview(chevron)
 
         NSLayoutConstraint.activate([
@@ -388,14 +349,7 @@ final class NavigationRowButton: NSControl {
 
             chevron.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
             chevron.centerYAnchor.constraint(equalTo: centerYAnchor),
-
-            detailLabel.trailingAnchor.constraint(equalTo: chevron.leadingAnchor, constant: -6),
-            detailLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            detailLabel.leadingAnchor.constraint(greaterThanOrEqualTo: titleLabel.trailingAnchor, constant: 10),
         ])
-
-        titleLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
-        detailLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
     }
 
     @available(*, unavailable)
