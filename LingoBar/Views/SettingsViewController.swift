@@ -9,7 +9,6 @@ import ServiceManagement
 final class SettingsViewController: NSViewController {
     private var launchToggle: NSButton!
     private var timeoutField: NSTextField!
-    private var timeoutStepper: NSStepper!
     private let engineSettingsVC = EngineSettingsViewController()
     private var cancellables: Set<AnyCancellable> = []
 
@@ -70,18 +69,18 @@ final class SettingsViewController: NSViewController {
             launchRow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sideInset),
             launchRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sideInset),
 
-            shortcutRow.topAnchor.constraint(equalTo: launchRow.bottomAnchor, constant: 4),
+            shortcutRow.topAnchor.constraint(equalTo: launchRow.bottomAnchor),
             shortcutRow.leadingAnchor.constraint(equalTo: launchRow.leadingAnchor),
             shortcutRow.trailingAnchor.constraint(equalTo: launchRow.trailingAnchor),
 
-            timeoutRow.topAnchor.constraint(equalTo: shortcutRow.bottomAnchor, constant: 4),
+            timeoutRow.topAnchor.constraint(equalTo: shortcutRow.bottomAnchor),
             timeoutRow.leadingAnchor.constraint(equalTo: launchRow.leadingAnchor),
             timeoutRow.trailingAnchor.constraint(equalTo: launchRow.trailingAnchor),
 
             // Engine section: pinned under the timeout row and stretched to
             // the panel bottom (minus a small cosmetic pad). The engine box
             // inside owns its own scroll view, so any overflow happens there.
-            enginesView.topAnchor.constraint(equalTo: timeoutRow.bottomAnchor, constant: 10),
+            enginesView.topAnchor.constraint(equalTo: timeoutRow.bottomAnchor, constant: 8),
             enginesView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sideInset),
             enginesView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sideInset),
             enginesView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -12),
@@ -92,9 +91,13 @@ final class SettingsViewController: NSViewController {
 
     private func makeTimeoutControl() -> NSView {
         timeoutField = NSTextField()
-        timeoutField.alignment = .right
+        timeoutField.alignment = .center
         timeoutField.controlSize = .small
         timeoutField.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        timeoutField.isBezeled = false
+        timeoutField.isBordered = false
+        timeoutField.drawsBackground = false
+        timeoutField.focusRingType = .none
         timeoutField.translatesAutoresizingMaskIntoConstraints = false
         let formatter = NumberFormatter()
         formatter.numberStyle = .none
@@ -104,22 +107,14 @@ final class SettingsViewController: NSViewController {
         timeoutField.formatter = formatter
         timeoutField.target = self
         timeoutField.action = #selector(timeoutFieldChanged)
-        timeoutField.widthAnchor.constraint(equalToConstant: 48).isActive = true
 
-        timeoutStepper = NSStepper()
-        timeoutStepper.controlSize = .small
-        timeoutStepper.translatesAutoresizingMaskIntoConstraints = false
-        timeoutStepper.minValue = Double(AppSettings.minEngineTimeoutSeconds)
-        timeoutStepper.maxValue = 300
-        timeoutStepper.increment = 1
-        timeoutStepper.valueWraps = false
-        timeoutStepper.target = self
-        timeoutStepper.action = #selector(timeoutStepperChanged)
+        let pill = PillFieldBox(field: timeoutField)
+        pill.widthAnchor.constraint(equalToConstant: 52).isActive = true
 
         let unitLabel = NSTextField(labelWithString: String(localized: "seconds"))
         unitLabel.textColor = .secondaryLabelColor
 
-        let row = NSStackView(views: [timeoutField, timeoutStepper, unitLabel])
+        let row = NSStackView(views: [pill, unitLabel])
         row.orientation = .horizontal
         row.spacing = 6
         row.alignment = .centerY
@@ -128,9 +123,8 @@ final class SettingsViewController: NSViewController {
     }
 
     private func applyTimeout(_ seconds: Int) {
-        guard let field = timeoutField, let stepper = timeoutStepper else { return }
+        guard let field = timeoutField else { return }
         if field.integerValue != seconds { field.integerValue = seconds }
-        if Int(stepper.doubleValue) != seconds { stepper.integerValue = seconds }
     }
 
     /// Row with the title flush-left and the control sitting right after it.
@@ -178,16 +172,61 @@ final class SettingsViewController: NSViewController {
         let value = max(AppSettings.minEngineTimeoutSeconds, timeoutField.integerValue)
         settings.engineTimeoutSeconds = value
     }
-
-    @objc private func timeoutStepperChanged() {
-        let value = max(AppSettings.minEngineTimeoutSeconds, timeoutStepper.integerValue)
-        settings.engineTimeoutSeconds = value
-    }
 }
 
 /// Flipped content view so NSScrollView lays out its document top-to-bottom.
 final class FlippedView: NSView {
     override var isFlipped: Bool { true }
+}
+
+/// Pill-shaped host for a plain `NSTextField`. Wraps the unbezeled field in
+/// the same translucent rounded background used by `RecorderPillBox`, so the
+/// timeout input visually matches the shortcut recorder.
+final class PillFieldBox: NSView {
+    private let field: NSTextField
+
+    init(field: NSTextField) {
+        self.field = field
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+        layer?.cornerRadius = 11
+        layer?.cornerCurve = .continuous
+
+        field.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(field)
+
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 22),
+            field.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 6),
+            field.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -6),
+            field.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    override var allowsVibrancy: Bool { false }
+
+    override func updateLayer() {
+        super.updateLayer()
+        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil
+        layer?.backgroundColor = (isDark
+            ? NSColor(white: 1, alpha: 0.08)
+            : NSColor(white: 0, alpha: 0.05)).cgColor
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
+    /// Clicks on the pill padding focus the field, matching how a bezeled
+    /// NSTextField's chrome normally captures a click.
+    override func mouseDown(with event: NSEvent) {
+        window?.makeFirstResponder(field)
+    }
 }
 
 /// Pill-shaped host for `KeyboardShortcuts.RecorderCocoa`. The stock recorder
