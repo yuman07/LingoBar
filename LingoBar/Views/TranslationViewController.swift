@@ -1,6 +1,5 @@
 import AppKit
 import Combine
-import NaturalLanguage
 
 /// AppKit view controller for the Translate tab.
 /// Layout mirrors the former SwiftUI `TranslationView`:
@@ -608,7 +607,7 @@ final class TranslationViewController: NSViewController {
 
         let resolvedSource: SupportedLanguage
         if oldSource == .auto {
-            resolvedSource = detectLanguage(appState.inputText)
+            resolvedSource = SupportedLanguage.detect(in: appState.inputText)
         } else {
             resolvedSource = oldSource
         }
@@ -642,7 +641,7 @@ final class TranslationViewController: NSViewController {
     private func speakInputText() {
         let language: SupportedLanguage
         if appState.sourceLanguage == .auto {
-            language = detectLanguage(appState.inputText)
+            language = SupportedLanguage.detect(in: appState.inputText)
         } else {
             language = appState.sourceLanguage
         }
@@ -651,13 +650,6 @@ final class TranslationViewController: NSViewController {
 
     private func speakOutputText() {
         TTSService.shared.speak(text: appState.outputText, language: appState.targetLanguage)
-    }
-
-    private func detectLanguage(_ text: String) -> SupportedLanguage {
-        let recognizer = NLLanguageRecognizer()
-        recognizer.processString(text)
-        guard let dominant = recognizer.dominantLanguage else { return .systemDefault }
-        return SupportedLanguage.from(nlLanguageCode: dominant.rawValue)
     }
 }
 

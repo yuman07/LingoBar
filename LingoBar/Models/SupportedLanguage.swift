@@ -1,4 +1,5 @@
 import Foundation
+import NaturalLanguage
 
 enum SupportedLanguage: String, CaseIterable, Codable, Sendable, Identifiable {
     case auto
@@ -124,6 +125,37 @@ enum SupportedLanguage: String, CaseIterable, Codable, Sendable, Identifiable {
             return .traditionalChinese
         }
         return allCases.first { $0.nlLanguageCode == code } ?? .systemDefault
+    }
+
+    /// Detect the dominant language of `text` using Natural Language, with a
+    /// secondary disambiguation step for Chinese: `NLLanguageRecognizer` can
+    /// classify short text that is orthographically identical in both Chinese
+    /// variants (e.g. "你好") as Traditional. For such ambiguous input we
+    /// defer to the user's system Chinese variant instead of trusting the guess.
+    static func detect(in text: String) -> SupportedLanguage {
+        let recognizer = NLLanguageRecognizer()
+        recognizer.processString(text)
+        guard let dominant = recognizer.dominantLanguage else { return .systemDefault }
+        let detected = from(nlLanguageCode: dominant.rawValue)
+        guard detected.isChinese else { return detected }
+        return disambiguateChineseVariant(in: text, fallback: detected)
+    }
+
+    private static func disambiguateChineseVariant(
+        in text: String,
+        fallback: SupportedLanguage
+    ) -> SupportedLanguage {
+        if let simplified = text.applyingTransform(StringTransform(rawValue: "Hant-Hans"), reverse: false),
+           simplified != text {
+            return .traditionalChinese
+        }
+        if let traditional = text.applyingTransform(StringTransform(rawValue: "Hans-Hant"), reverse: false),
+           traditional != text {
+            return .simplifiedChinese
+        }
+        let systemDefault = SupportedLanguage.systemDefault
+        if systemDefault.isChinese { return systemDefault }
+        return .simplifiedChinese
     }
 
     /// Supported language matching the host system's preferred language.

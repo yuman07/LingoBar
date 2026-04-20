@@ -1,5 +1,4 @@
 import Foundation
-import NaturalLanguage
 import SwiftData
 import Translation
 
@@ -58,7 +57,7 @@ final class TranslationManager {
             // Always resolve Auto to a concrete language so Apple Translation
             // never shows its own language picker dialog
             let detectedSource = appState.sourceLanguage == .auto
-                ? detectLanguage(text)
+                ? SupportedLanguage.detect(in: text)
                 : appState.sourceLanguage
             let target = resolveTargetLanguage(
                 source: detectedSource,
@@ -335,20 +334,11 @@ final class TranslationManager {
     ) -> SupportedLanguage {
         guard target == .auto else { return target }
 
-        let detectedLanguage = detectLanguage(text)
+        let detectedLanguage = SupportedLanguage.detect(in: text)
         if detectedLanguage.isChinese {
             return .english
         } else {
             return .simplifiedChinese
         }
-    }
-
-    private func detectLanguage(_ text: String) -> SupportedLanguage {
-        let recognizer = NLLanguageRecognizer()
-        recognizer.processString(text)
-        guard let dominant = recognizer.dominantLanguage else {
-            return .systemDefault
-        }
-        return SupportedLanguage.from(nlLanguageCode: dominant.rawValue)
     }
 }
