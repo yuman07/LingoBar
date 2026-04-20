@@ -123,6 +123,26 @@ enum SupportedLanguage: String, CaseIterable, Codable, Sendable, Identifiable {
         if code.hasPrefix("zh-Hant") {
             return .traditionalChinese
         }
+        return allCases.first { $0.nlLanguageCode == code } ?? .systemDefault
+    }
+
+    /// Supported language matching the host system's preferred language.
+    /// Used as the fallback when auto-detection can't resolve a supported language.
+    /// Falls back to `.english` if the system language isn't in the supported set.
+    static var systemDefault: SupportedLanguage {
+        guard let preferred = Locale.preferredLanguages.first else { return .english }
+        let locale = Locale(identifier: preferred)
+        guard let code = locale.language.languageCode?.identifier else { return .english }
+
+        if code == "zh" {
+            let script = locale.language.script?.identifier
+            let region = locale.language.region?.identifier
+            if script == "Hant" || region == "TW" || region == "HK" || region == "MO" {
+                return .traditionalChinese
+            }
+            return .simplifiedChinese
+        }
+
         return allCases.first { $0.nlLanguageCode == code } ?? .english
     }
 

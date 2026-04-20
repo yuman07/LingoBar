@@ -318,7 +318,7 @@ final class TranslationManager {
         let recognizer = NLLanguageRecognizer()
         recognizer.processString(text)
         guard let dominant = recognizer.dominantLanguage else {
-            return .english
+            return .systemDefault
         }
         return SupportedLanguage.from(nlLanguageCode: dominant.rawValue)
     }

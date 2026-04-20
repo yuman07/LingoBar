@@ -643,7 +643,7 @@ final class TranslationViewController: NSViewController {
     private func detectLanguage(_ text: String) -> SupportedLanguage {
         let recognizer = NLLanguageRecognizer()
         recognizer.processString(text)
-        guard let dominant = recognizer.dominantLanguage else { return .english }
+        guard let dominant = recognizer.dominantLanguage else { return .systemDefault }
         return SupportedLanguage.from(nlLanguageCode: dominant.rawValue)
     }
 }
