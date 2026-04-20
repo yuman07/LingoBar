@@ -1,32 +1,30 @@
 import AppKit
 import Combine
 
-/// Dedicated sub-page of the Settings tab for managing the ordered list of
-/// translation engines and the unified per-engine request timeout.
+/// Engine section of the Settings tab: the full ordered list of supported
+/// engines with enable checkboxes on the left and drag handles for reorder,
+/// plus the shared request-timeout control. Lives embedded in
+/// `SettingsViewController`'s scroll form — owns its own subviews but does
+/// not bring its own scroll view.
 ///
 /// Layout:
 /// ```
-/// PRIORITY
 /// ┌──────────────────────────────┐
-/// │ 🍎 Apple                 [−] │
-/// │ G  Google                [−] │
+/// │ ☑ ⠿ 🍎 Apple                 │
+/// │ ☐ ⠿ G  Google                │
 /// └──────────────────────────────┘
-/// [+] Add Engine
+/// Translations try enabled engines top-to-bottom; drag to reorder.
 ///
-/// REQUEST TIMEOUT
-/// Seconds   [ 5 ] [-/+]
+/// Request timeout  [ 5 ] ↕ seconds
 /// ```
 final class EngineSettingsViewController: NSViewController {
     private let rowPasteboardType = NSPasteboard.PasteboardType("com.yuman.LingoBar.engineRow")
 
-    private var contentStack: NSStackView!
     private var priorityBox: NSView!
     private var tableView: NSTableView!
     private var tableHeightConstraint: NSLayoutConstraint!
-    private var addButton: NSButton!
     private var timeoutField: NSTextField!
     private var timeoutStepper: NSStepper!
-    private var hintLabel: NSTextField!
 
     private var cancellables: Set<AnyCancellable> = []
     private var settings: AppSettings { SharedEnvironment.shared.appSettings! }
@@ -53,45 +51,31 @@ final class EngineSettingsViewController: NSViewController {
     // MARK: - Layout
 
     private func buildLayout() {
-        contentStack = NSStackView()
-        contentStack.orientation = .vertical
-        contentStack.alignment = .leading
-        contentStack.spacing = 14
-        contentStack.edgeInsets = NSEdgeInsets(top: 12, left: 14, bottom: 12, right: 14)
-        contentStack.translatesAutoresizingMaskIntoConstraints = false
-
-        contentStack.addArrangedSubview(makePrioritySection())
-        contentStack.addArrangedSubview(separator())
-        contentStack.addArrangedSubview(makeTimeoutSection())
-
-        let flip = FlippedView()
-        flip.translatesAutoresizingMaskIntoConstraints = false
-        flip.addSubview(contentStack)
-
-        let scroll = NSScrollView()
-        scroll.translatesAutoresizingMaskIntoConstraints = false
-        scroll.hasVerticalScroller = true
-        scroll.drawsBackground = false
-        scroll.documentView = flip
-        scroll.automaticallyAdjustsContentInsets = false
-
-        view.addSubview(scroll)
-
-        NSLayoutConstraint.activate([
-            scroll.topAnchor.constraint(equalTo: view.topAnchor),
-            scroll.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-
-            contentStack.topAnchor.constraint(equalTo: flip.topAnchor),
-            contentStack.leadingAnchor.constraint(equalTo: flip.leadingAnchor),
-            contentStack.trailingAnchor.constraint(equalTo: flip.trailingAnchor),
-            contentStack.bottomAnchor.constraint(equalTo: flip.bottomAnchor),
-            flip.widthAnchor.constraint(equalTo: scroll.widthAnchor),
+        let stack = NSStackView(views: [
+            makeEngineBox(),
+            makeHintLabel(),
+            makeTimeoutRow(),
         ])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 8
+        stack.setCustomSpacing(12, after: stack.arrangedSubviews[1])
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        view.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: view.topAnchor),
+            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            stack.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+
+        // Anchor the bordered list to the full column so rows don't float at
+        // their intrinsic (narrow) width.
+        priorityBox.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
     }
 
-    private func makePrioritySection() -> NSView {
+    private func makeEngineBox() -> NSView {
         tableView = NSTableView()
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.headerView = nil
@@ -123,7 +107,6 @@ final class EngineSettingsViewController: NSViewController {
         tableScroll.verticalScrollElasticity = .none
         tableScroll.horizontalScrollElasticity = .none
 
-        // Rounded bordered container echoing macOS Settings list aesthetics.
         priorityBox = NSView()
         priorityBox.wantsLayer = true
         priorityBox.layer?.cornerRadius = 8
@@ -142,42 +125,21 @@ final class EngineSettingsViewController: NSViewController {
             tableScroll.trailingAnchor.constraint(equalTo: priorityBox.trailingAnchor),
             tableHeightConstraint,
         ])
-
-        addButton = NSButton(title: "  " + String(localized: "Add Engine"),
-                             target: self,
-                             action: #selector(showAddMenu))
-        addButton.bezelStyle = .inline
-        addButton.isBordered = false
-        addButton.contentTintColor = .controlAccentColor
-        addButton.image = NSImage(systemSymbolName: "plus.circle.fill", accessibilityDescription: nil)
-        addButton.imagePosition = .imageLeading
-        addButton.imageHugsTitle = true
-        addButton.font = .preferredFont(forTextStyle: .body)
-        addButton.translatesAutoresizingMaskIntoConstraints = false
-
-        hintLabel = NSTextField(labelWithString: String(localized: "Translations try engines top-to-bottom; drag to reorder."))
-        hintLabel.font = .preferredFont(forTextStyle: .footnote)
-        hintLabel.textColor = .secondaryLabelColor
-        hintLabel.lineBreakMode = .byWordWrapping
-        hintLabel.maximumNumberOfLines = 0
-        hintLabel.preferredMaxLayoutWidth = 280
-        hintLabel.translatesAutoresizingMaskIntoConstraints = false
-
-        let stack = NSStackView(views: [sectionHeader(String(localized: "Priority")), priorityBox, addButton, hintLabel])
-        stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 8
-        stack.translatesAutoresizingMaskIntoConstraints = false
-
-        // Anchor the list and hint to the full content width so they never
-        // float with intrinsic size.
-        priorityBox.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-        hintLabel.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-
-        return stack
+        return priorityBox
     }
 
-    private func makeTimeoutSection() -> NSView {
+    private func makeHintLabel() -> NSView {
+        let label = NSTextField(labelWithString: String(localized: "Translations try enabled engines top-to-bottom; drag to reorder."))
+        label.font = .preferredFont(forTextStyle: .footnote)
+        label.textColor = .secondaryLabelColor
+        label.lineBreakMode = .byWordWrapping
+        label.maximumNumberOfLines = 0
+        label.preferredMaxLayoutWidth = 280
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }
+
+    private func makeTimeoutRow() -> NSView {
         timeoutField = NSTextField()
         timeoutField.alignment = .right
         timeoutField.translatesAutoresizingMaskIntoConstraints = false
@@ -203,78 +165,35 @@ final class EngineSettingsViewController: NSViewController {
         let unitLabel = NSTextField(labelWithString: String(localized: "seconds"))
         unitLabel.textColor = .secondaryLabelColor
 
-        let fieldRow = NSStackView(views: [timeoutField, timeoutStepper, unitLabel])
-        fieldRow.orientation = .horizontal
-        fieldRow.spacing = 6
-        fieldRow.alignment = .centerY
+        let title = NSTextField(labelWithString: String(localized: "Request timeout"))
+        title.font = .preferredFont(forTextStyle: .body)
+        title.translatesAutoresizingMaskIntoConstraints = false
+        title.setContentCompressionResistancePriority(.required, for: .horizontal)
 
-        let rowLabelView = rowLabel(String(localized: "Request timeout"))
-
-        let grid = gridView([[rowLabelView, fieldRow]])
-        let section = NSStackView(views: [sectionHeader(String(localized: "Timeout")), grid])
-        section.orientation = .vertical
-        section.alignment = .leading
-        section.spacing = 8
-        section.translatesAutoresizingMaskIntoConstraints = false
-        return section
-    }
-
-    // MARK: - Helpers
-
-    private func sectionHeader(_ text: String) -> NSTextField {
-        let f = NSTextField(labelWithString: text)
-        f.font = .boldSystemFont(ofSize: NSFont.systemFontSize)
-        return f
-    }
-
-    private func rowLabel(_ text: String) -> NSTextField {
-        let f = NSTextField(labelWithString: text)
-        f.alignment = .right
-        f.textColor = .secondaryLabelColor
-        return f
-    }
-
-    private func gridView(_ rows: [[NSView]]) -> NSGridView {
-        let grid = NSGridView(views: rows)
-        grid.columnSpacing = 10
-        grid.rowSpacing = 8
-        grid.column(at: 0).xPlacement = .trailing
-        grid.column(at: 1).xPlacement = .leading
-        grid.translatesAutoresizingMaskIntoConstraints = false
-        return grid
-    }
-
-    private func separator() -> NSView {
-        let line = NSBox()
-        line.boxType = .separator
-        line.translatesAutoresizingMaskIntoConstraints = false
-        line.heightAnchor.constraint(equalToConstant: 1).isActive = true
-        line.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        let container = NSView()
-        container.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(line)
-        NSLayoutConstraint.activate([
-            container.heightAnchor.constraint(equalTo: line.heightAnchor),
-            line.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            line.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            line.topAnchor.constraint(equalTo: container.topAnchor),
-            line.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-        ])
-        container.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        return container
+        let row = NSStackView(views: [title, timeoutField, timeoutStepper, unitLabel])
+        row.orientation = .horizontal
+        row.spacing = 6
+        row.alignment = .centerY
+        row.setCustomSpacing(10, after: title)
+        row.translatesAutoresizingMaskIntoConstraints = false
+        row.heightAnchor.constraint(equalToConstant: 28).isActive = true
+        return row
     }
 
     // MARK: - Subscribe / refresh
 
     private func subscribe() {
+        // `@Published` fires in willSet, so schedule the read on the next
+        // runloop tick to see the new value on the settings object.
         settings.$engineList
             .sink { [weak self] _ in
-                // Trailing so the value on `settings` is already current when
-                // we read it inside `refresh()`. `@Published` fires in
-                // willSet, and the table reload needs the post-write state.
-                DispatchQueue.main.async { [weak self] in
-                    self?.refresh()
-                }
+                DispatchQueue.main.async { [weak self] in self?.refresh() }
+            }
+            .store(in: &cancellables)
+
+        settings.$enabledEngines
+            .sink { [weak self] _ in
+                DispatchQueue.main.async { [weak self] in self?.refresh() }
             }
             .store(in: &cancellables)
 
@@ -291,7 +210,6 @@ final class EngineSettingsViewController: NSViewController {
         tableView.reloadData()
         let rows = max(1, settings.engineList.count)
         tableHeightConstraint.constant = CGFloat(rows) * rowHeight
-        addButton.isEnabled = !settings.availableEnginesToAdd.isEmpty
         applyTimeout(settings.engineTimeoutSeconds)
     }
 
@@ -302,32 +220,14 @@ final class EngineSettingsViewController: NSViewController {
 
     // MARK: - Actions
 
-    @objc private func showAddMenu(_ sender: NSButton) {
-        let available = settings.availableEnginesToAdd
-        guard !available.isEmpty else { return }
-        let menu = NSMenu()
-        for engine in available {
-            let item = NSMenuItem(title: engine.displayName,
-                                  action: #selector(addEngineFromMenu(_:)),
-                                  keyEquivalent: "")
-            item.target = self
-            item.image = NSImage(systemSymbolName: engine.iconName, accessibilityDescription: nil)
-            item.representedObject = engine
-            menu.addItem(item)
-        }
-        let origin = NSPoint(x: 0, y: sender.bounds.height + 2)
-        menu.popUp(positioning: nil, at: origin, in: sender)
-    }
-
-    @objc private func addEngineFromMenu(_ sender: NSMenuItem) {
-        guard let engine = sender.representedObject as? TranslationEngineType else { return }
-        settings.addEngine(engine)
-    }
-
-    @objc private func removeEngine(_ sender: NSButton) {
+    @objc fileprivate func toggleEnabled(_ sender: NSButton) {
         let row = sender.tag
         guard settings.engineList.indices.contains(row) else { return }
-        settings.removeEngine(settings.engineList[row])
+        let engine = settings.engineList[row]
+        // The checkbox is disabled at the UI level when we're at count==1 and
+        // the user tries to uncheck the sole enabled engine, but `toggleEngine`
+        // is also defensive — a second enforcement point doesn't hurt.
+        settings.toggleEngine(engine)
     }
 
     @objc private func timeoutFieldChanged() {
@@ -351,13 +251,17 @@ extension EngineSettingsViewController: NSTableViewDataSource, NSTableViewDelega
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         guard settings.engineList.indices.contains(row) else { return nil }
         let engine = settings.engineList[row]
+        let isEnabled = settings.isEnabled(engine)
+        // Lock the lone remaining enabled engine: user must keep ≥1 checked.
+        let canUncheck = settings.enabledEngines.count > 1
         let cell = EngineRowView()
         cell.configure(
             engine: engine,
-            canRemove: settings.engineList.count > 1,
-            removeTag: row,
-            removeAction: #selector(removeEngine(_:)),
-            removeTarget: self
+            isEnabled: isEnabled,
+            canToggleOff: canUncheck,
+            row: row,
+            toggleAction: #selector(toggleEnabled(_:)),
+            toggleTarget: self
         )
         return cell
     }
@@ -399,10 +303,10 @@ extension EngineSettingsViewController: NSTableViewDataSource, NSTableViewDelega
 // MARK: - Engine row view
 
 private final class EngineRowView: NSView {
+    private let checkbox = NSButton()
     private let iconView = NSImageView()
     private let label = NSTextField(labelWithString: "")
     private let handleView = NSImageView()
-    private let removeButton = NSButton()
 
     init() {
         super.init(frame: .zero)
@@ -413,6 +317,10 @@ private final class EngineRowView: NSView {
     required init?(coder: NSCoder) { fatalError() }
 
     private func setup() {
+        checkbox.setButtonType(.switch)
+        checkbox.title = ""
+        checkbox.translatesAutoresizingMaskIntoConstraints = false
+
         handleView.image = NSImage(systemSymbolName: "line.3.horizontal", accessibilityDescription: nil)
         handleView.symbolConfiguration = .init(pointSize: 12, weight: .regular)
         handleView.contentTintColor = .tertiaryLabelColor
@@ -426,21 +334,16 @@ private final class EngineRowView: NSView {
         label.lineBreakMode = .byTruncatingTail
         label.translatesAutoresizingMaskIntoConstraints = false
 
-        removeButton.isBordered = false
-        removeButton.bezelStyle = .regularSquare
-        removeButton.imagePosition = .imageOnly
-        removeButton.image = NSImage(systemSymbolName: "minus.circle.fill", accessibilityDescription: nil)
-        removeButton.symbolConfiguration = .init(pointSize: 14, weight: .regular)
-        removeButton.contentTintColor = .systemRed
-        removeButton.translatesAutoresizingMaskIntoConstraints = false
-
+        addSubview(checkbox)
         addSubview(handleView)
         addSubview(iconView)
         addSubview(label)
-        addSubview(removeButton)
 
         NSLayoutConstraint.activate([
-            handleView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            checkbox.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            checkbox.centerYAnchor.constraint(equalTo: centerYAnchor),
+
+            handleView.leadingAnchor.constraint(equalTo: checkbox.trailingAnchor, constant: 8),
             handleView.centerYAnchor.constraint(equalTo: centerYAnchor),
             handleView.widthAnchor.constraint(equalToConstant: 16),
             handleView.heightAnchor.constraint(equalToConstant: 16),
@@ -452,28 +355,28 @@ private final class EngineRowView: NSView {
 
             label.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 8),
             label.centerYAnchor.constraint(equalTo: centerYAnchor),
-            label.trailingAnchor.constraint(lessThanOrEqualTo: removeButton.leadingAnchor, constant: -8),
-
-            removeButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
-            removeButton.centerYAnchor.constraint(equalTo: centerYAnchor),
-            removeButton.widthAnchor.constraint(equalToConstant: 20),
-            removeButton.heightAnchor.constraint(equalToConstant: 20),
+            label.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -10),
         ])
     }
 
     func configure(
         engine: TranslationEngineType,
-        canRemove: Bool,
-        removeTag: Int,
-        removeAction: Selector,
-        removeTarget: AnyObject
+        isEnabled: Bool,
+        canToggleOff: Bool,
+        row: Int,
+        toggleAction: Selector,
+        toggleTarget: AnyObject
     ) {
         iconView.image = NSImage(systemSymbolName: engine.iconName, accessibilityDescription: nil)
         label.stringValue = engine.displayName
-        removeButton.tag = removeTag
-        removeButton.target = removeTarget
-        removeButton.action = removeAction
-        removeButton.isHidden = !canRemove
+        checkbox.state = isEnabled ? .on : .off
+        checkbox.tag = row
+        checkbox.target = toggleTarget
+        checkbox.action = toggleAction
+        // "At least one engine must stay on": when the checkbox represents the
+        // only enabled engine, disable it so the user can't uncheck it. Rows
+        // that are already off stay enabled so the user can turn them on.
+        checkbox.isEnabled = !isEnabled || canToggleOff
     }
 
     override func draw(_ dirtyRect: NSRect) {

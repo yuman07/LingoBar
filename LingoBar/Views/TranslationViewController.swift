@@ -456,26 +456,32 @@ final class TranslationViewController: NSViewController {
             }
             .store(in: &cancellables)
 
-        settings.$engineList
-            .removeDuplicates()
-            .dropFirst()
-            .sink { [weak self] list in
-                guard let self else { return }
-                // Snap the engine tag to the new list head so the indicator
-                // reflects what the next translation will try first. The
-                // actual winning engine will overwrite this in the sink for
-                // `state.$currentEngineType` once the chain completes.
-                if let first = list.first,
-                   !list.contains(self.appState.currentEngineType) || self.appState.inputText.isEmpty {
-                    self.appState.currentEngineType = first
-                }
-                DispatchQueue.main.async { [weak self] in
-                    guard let self else { return }
-                    if self.appState.isReplayingContent { return }
-                    self.manager.translateWithDebounce(appState: self.appState)
-                }
+        // Either a reorder or a checkbox flip can change what the chain will
+        // actually run — `activeEngines` covers both. Merge the two publishers
+        // so the indicator / re-translate logic fires once per change.
+        Publishers.Merge(
+            settings.$engineList.map { _ in () },
+            settings.$enabledEngines.map { _ in () }
+        )
+        .dropFirst()
+        .sink { [weak self] _ in
+            guard let self else { return }
+            // Snap the engine tag to the new active head so the indicator
+            // reflects what the next translation will try first. The actual
+            // winning engine will overwrite this in the sink for
+            // `state.$currentEngineType` once the chain completes.
+            let active = self.settings.activeEngines
+            if let first = active.first,
+               !active.contains(self.appState.currentEngineType) || self.appState.inputText.isEmpty {
+                self.appState.currentEngineType = first
             }
-            .store(in: &cancellables)
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                if self.appState.isReplayingContent { return }
+                self.manager.translateWithDebounce(appState: self.appState)
+            }
+        }
+        .store(in: &cancellables)
 
         settings.$engineTimeoutSeconds
             .removeDuplicates()

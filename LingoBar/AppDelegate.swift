@@ -20,7 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         settings.loadSavedLanguages(into: appState)
-        if let first = settings.engineList.first {
+        if let first = settings.activeEngines.first {
             appState.currentEngineType = first
         }
 

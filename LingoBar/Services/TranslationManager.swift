@@ -32,7 +32,7 @@ final class TranslationManager {
             // "current engine" tag back to the list head. The next translation
             // will start its chain walk from the same top-priority position,
             // so the indicator matches what's actually about to run.
-            if let first = settings.engineList.first {
+            if let first = settings.activeEngines.first {
                 appState.currentEngineType = first
             }
             return
@@ -80,7 +80,7 @@ final class TranslationManager {
         target: SupportedLanguage,
         appState: AppState
     ) async {
-        let list = settings.engineList
+        let list = settings.activeEngines
         let timeoutSeconds = settings.engineTimeoutSeconds
         let timeoutInterval = TimeInterval(timeoutSeconds)
 

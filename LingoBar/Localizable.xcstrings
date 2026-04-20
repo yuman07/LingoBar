@@ -249,27 +249,6 @@
         }
       }
     },
-    "General" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : { "state" : "translated", "value" : "通用" }
-        }
-      }
-    },
-    "Shortcut" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : { "state" : "translated", "value" : "快捷键" }
-        }
-      }
-    },
-    "Translation Engines" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : { "state" : "translated", "value" : "翻译引擎" }
-        }
-      }
-    },
     "Launch at Login" : {
       "localizations" : {
         "zh-Hans" : {
@@ -281,27 +260,6 @@
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : { "state" : "translated", "value" : "打开或关闭翻译窗口" }
-        }
-      }
-    },
-    "Priority" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : { "state" : "translated", "value" : "优先级" }
-        }
-      }
-    },
-    "Timeout" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : { "state" : "translated", "value" : "超时" }
-        }
-      }
-    },
-    "Add Engine" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : { "state" : "translated", "value" : "添加引擎" }
         }
       }
     },
@@ -319,17 +277,10 @@
         }
       }
     },
-    "Settings" : {
+    "Translations try enabled engines top-to-bottom; drag to reorder." : {
       "localizations" : {
         "zh-Hans" : {
-          "stringUnit" : { "state" : "translated", "value" : "设置" }
-        }
-      }
-    },
-    "Translations try engines top-to-bottom; drag to reorder." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : { "state" : "translated", "value" : "翻译时按列表从上到下依次尝试，拖拽即可调整顺序。" }
+          "stringUnit" : { "state" : "translated", "value" : "翻译时按列表从上到下依次尝试已启用的引擎，拖拽即可调整顺序。" }
         }
       }
     },

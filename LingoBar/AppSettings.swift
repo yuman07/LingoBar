@@ -13,12 +13,31 @@ final class AppSettings: ObservableObject {
 
     private let defaults = UserDefaults.standard
 
-    /// Ordered list of engines the user wants to try, highest-priority first.
-    /// Persisted so the order survives restarts. Must always contain ≥1 entry.
+    /// User's preferred ordering of every supported engine. The list always
+    /// contains `TranslationEngineType.allCases` — engines aren't added or
+    /// removed, only reordered. Default is reverse-alphabetical by display
+    /// name so a brand-new install sees engines ordered Z→A.
     @Published private(set) var engineList: [TranslationEngineType] {
         didSet {
             guard oldValue != engineList else { return }
             defaults.set(engineList.map(\.rawValue), forKey: Keys.engineList)
+            NotificationCenter.default.post(name: .engineListDidChange, object: self)
+            notify()
+        }
+    }
+
+    /// Subset of `engineList` the user has turned on. The translation chain
+    /// walks `activeEngines` (the ordered intersection) top-to-bottom. Must
+    /// always contain at least one engine — the UI prevents unchecking the
+    /// last one, and the setter re-adds `.apple` if something clears it.
+    @Published private(set) var enabledEngines: Set<TranslationEngineType> {
+        didSet {
+            if enabledEngines.isEmpty {
+                enabledEngines = [.apple]
+                return
+            }
+            guard oldValue != enabledEngines else { return }
+            defaults.set(enabledEngines.map(\.rawValue), forKey: Keys.enabledEngines)
             NotificationCenter.default.post(name: .engineListDidChange, object: self)
             notify()
         }
@@ -55,16 +74,25 @@ final class AppSettings: ObservableObject {
 
     init() {
         let d = UserDefaults.standard
+
+        let savedOrder: [TranslationEngineType]
         if let raw = d.array(forKey: Keys.engineList) as? [String] {
-            let parsed = raw.compactMap { TranslationEngineType(rawValue: $0) }
-            // Collapse duplicates while preserving first-seen order; the UI
-            // promises the list has no duplicates, so the store should too.
             var seen: Set<TranslationEngineType> = []
-            let unique = parsed.filter { seen.insert($0).inserted }
-            engineList = unique.isEmpty ? [.apple] : unique
+            savedOrder = raw
+                .compactMap { TranslationEngineType(rawValue: $0) }
+                .filter { seen.insert($0).inserted }
         } else {
-            engineList = [.apple]
+            savedOrder = []
         }
+        engineList = Self.fillingMissingEngines(into: savedOrder)
+
+        if let raw = d.array(forKey: Keys.enabledEngines) as? [String] {
+            let parsed = Set(raw.compactMap { TranslationEngineType(rawValue: $0) })
+            enabledEngines = parsed.isEmpty ? [.apple] : parsed
+        } else {
+            enabledEngines = [.apple]
+        }
+
         let savedTimeout = d.object(forKey: Keys.engineTimeoutSeconds) as? Int
         engineTimeoutSeconds = max(Self.minEngineTimeoutSeconds,
                                    savedTimeout ?? Self.defaultEngineTimeoutSeconds)
@@ -82,29 +110,29 @@ final class AppSettings: ObservableObject {
         targetLanguage = appState.targetLanguage
     }
 
-    // MARK: - Engine list mutations
+    // MARK: - Engine list
 
-    /// Engines not yet in the user's list — exactly the set offered by the
-    /// "Add Engine" button. Order matches `TranslationEngineType.allCases` so
-    /// future additions slot into a stable position.
-    var availableEnginesToAdd: [TranslationEngineType] {
-        TranslationEngineType.allCases.filter { !engineList.contains($0) }
+    /// Engines the user has enabled, in their preferred order. This is the
+    /// list the translation chain walks; if someone disables an engine,
+    /// reordering it still affects the eventual walk order once re-enabled.
+    var activeEngines: [TranslationEngineType] {
+        engineList.filter { enabledEngines.contains($0) }
     }
 
-    func addEngine(_ engine: TranslationEngineType) {
-        guard !engineList.contains(engine) else { return }
-        engineList.append(engine)
+    func isEnabled(_ engine: TranslationEngineType) -> Bool {
+        enabledEngines.contains(engine)
     }
 
-    /// Remove an engine from the list, but only if at least one would remain.
-    /// The list is the source of truth for which engines the app will ever
-    /// try — letting it go empty would strand the user with no way to
-    /// translate until they re-added one.
-    @discardableResult
-    func removeEngine(_ engine: TranslationEngineType) -> Bool {
-        guard engineList.count > 1, let idx = engineList.firstIndex(of: engine) else { return false }
-        engineList.remove(at: idx)
-        return true
+    /// Flip an engine's enabled flag. Silently no-ops when the user tries to
+    /// uncheck their only remaining enabled engine — translations need at
+    /// least one engine to run, so the UI locks the final checkbox on.
+    func toggleEngine(_ engine: TranslationEngineType) {
+        if enabledEngines.contains(engine) {
+            guard enabledEngines.count > 1 else { return }
+            enabledEngines.remove(engine)
+        } else {
+            enabledEngines.insert(engine)
+        }
     }
 
     func moveEngine(from source: Int, to destination: Int) {
@@ -116,12 +144,27 @@ final class AppSettings: ObservableObject {
         engineList.insert(item, at: insertIndex)
     }
 
+    /// Make sure the ordering contains every supported engine. Preserves the
+    /// user's existing order and appends any engines that `allCases` has but
+    /// the saved list doesn't — which is how newly added engine types slide
+    /// into the list after an app update without disturbing prior prefs.
+    private static func fillingMissingEngines(into order: [TranslationEngineType]) -> [TranslationEngineType] {
+        var result = order
+        let known = Set(result)
+        let missing = TranslationEngineType.allCases
+            .filter { !known.contains($0) }
+            .sorted { $0.displayName > $1.displayName }
+        result.append(contentsOf: missing)
+        return result
+    }
+
     private func notify() {
         NotificationCenter.default.post(name: .appSettingsDidChange, object: self)
     }
 
     private enum Keys {
         static let engineList = "engineList"
+        static let enabledEngines = "enabledEngines"
         static let engineTimeoutSeconds = "engineTimeoutSeconds"
         static let sourceLanguage = "sourceLanguage"
         static let targetLanguage = "targetLanguage"
