@@ -71,7 +71,7 @@ final class SettingsViewController: NSViewController {
             contentStack.bottomAnchor.constraint(equalTo: flip.bottomAnchor),
             flip.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
 
-            view.heightAnchor.constraint(equalToConstant: 320),
+            view.heightAnchor.constraint(equalToConstant: 280),
         ])
     }
 
