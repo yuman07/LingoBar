@@ -461,7 +461,10 @@ final class TranslationViewController: NSViewController {
             .dropFirst()
             .sink { [weak self] engineType in
                 guard let self else { return }
-                self.updateEngineIndicator(engineType)
+                // Drive the icon via currentEngineType (its single source of
+                // truth) so the later failover write from .apple→.apple isn't
+                // filtered by removeDuplicates and the icon tracks reality.
+                self.appState.currentEngineType = engineType
                 DispatchQueue.main.async { [weak self] in
                     guard let self else { return }
                     if self.appState.isReplayingContent { return }
