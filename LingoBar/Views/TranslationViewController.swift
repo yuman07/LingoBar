@@ -101,6 +101,7 @@ final class TranslationViewController: NSViewController {
         inputPicker = LanguagePopUpButton(languages: SupportedLanguage.sourceLanguages)
         inputPicker.onSelect = { [weak self] lang in
             guard let self else { return }
+            guard self.appState.sourceLanguage != lang else { return }
             self.appState.sourceLanguage = lang
             self.settings.sourceLanguage = lang
             DispatchQueue.main.async { [weak self] in
@@ -217,6 +218,7 @@ final class TranslationViewController: NSViewController {
         outputPicker = LanguagePopUpButton(languages: SupportedLanguage.targetLanguages)
         outputPicker.onSelect = { [weak self] lang in
             guard let self else { return }
+            guard self.appState.targetLanguage != lang else { return }
             self.appState.targetLanguage = lang
             self.settings.targetLanguage = lang
             DispatchQueue.main.async { [weak self] in
