@@ -650,7 +650,7 @@ private final class HistoryRowCell: NSTableCellView {
         targetLabel.stringValue = record.targetText
         engineIcon.image = NSImage(systemSymbolName: record.engine.iconName, accessibilityDescription: nil)
         engineLabel.stringValue = record.engine.displayName
-        timeLabel.stringValue = Self.relativeFormatter.localizedString(for: record.timestamp, relativeTo: Date())
+        timeLabel.stringValue = Self.formatRelativeTime(record.timestamp)
         setFavorited(record.favoritedAt != nil)
     }
 
@@ -684,6 +684,16 @@ private final class HistoryRowCell: NSTableCellView {
         f.unitsStyle = .abbreviated
         return f
     }()
+
+    /// `RelativeDateTimeFormatter` renders sub-minute deltas as "0 seconds ago"
+    /// or — if the record is a few milliseconds in the future from clock drift —
+    /// "in 0 seconds". Collapse that whole window to a single "Just now" string.
+    private static func formatRelativeTime(_ timestamp: Date) -> String {
+        if abs(Date().timeIntervalSince(timestamp)) < 60 {
+            return String(localized: "Just now")
+        }
+        return relativeFormatter.localizedString(for: timestamp, relativeTo: Date())
+    }
 }
 
 /// Borderless NSButton variant for history-row action icons.

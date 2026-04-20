@@ -382,6 +382,13 @@
         }
       }
     },
+    "Just now" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : { "state" : "translated", "value" : "刚刚" }
+        }
+      }
+    },
     "Enter text" : {
       "localizations" : {
         "zh-Hans" : {
