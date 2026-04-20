@@ -21,7 +21,9 @@ struct GoogleTranslationEngine: TranslationEngineProtocol {
             URLQueryItem(name: "q", value: text),
         ]
 
-        let (data, response) = try await URLSession.shared.data(from: components.url!)
+        var request = URLRequest(url: components.url!)
+        request.timeoutInterval = 5
+        let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw EngineError.networkError
         }
