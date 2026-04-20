@@ -220,6 +220,18 @@ final class HistoryViewController: NSViewController {
         bottomDivider.isHidden = !hasAny
     }
 
+    /// Focus the search pill. Called when the History tab becomes visible so
+    /// the user can start searching immediately. Deferred a runloop tick so
+    /// `view.window` is wired up even on the first swap into the tab.
+    /// The pill collapses on an empty history, so bail quietly in that case
+    /// rather than grabbing focus for a hidden control.
+    func focusSearchField() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, !self.searchField.isHidden, self.view.window != nil else { return }
+            self.searchField.focusField()
+        }
+    }
+
     // MARK: - Actions
 
     @objc private func rowClicked() {
@@ -480,6 +492,14 @@ final class SearchPillField: NSView, NSTextFieldDelegate {
     /// Clicking on the pill's background (outside the text field proper) should
     /// still focus the input, the way the native search-field bezel behaves.
     override func mouseDown(with event: NSEvent) {
+        window?.makeFirstResponder(textField)
+        tintInsertionPoint()
+    }
+
+    /// Programmatically take focus, matching the click path. Used when the
+    /// History tab becomes active so the search field is ready to accept
+    /// typing without the user clicking first.
+    func focusField() {
         window?.makeFirstResponder(textField)
         tintInsertionPoint()
     }

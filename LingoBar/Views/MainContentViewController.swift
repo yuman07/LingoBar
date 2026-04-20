@@ -148,6 +148,10 @@ final class MainContentViewController: NSViewController {
 
     private func showHistory() {
         swap(to: historyVC.view)
+        // Park the cursor in the search pill so the user can type a query
+        // right away. HistoryViewController skips this if the pill is hidden
+        // (empty history state).
+        historyVC.focusSearchField()
     }
 
     private func showSettings() {
