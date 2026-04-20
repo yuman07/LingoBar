@@ -524,6 +524,21 @@ final class TranslationViewController: NSViewController {
         view.window?.makeFirstResponder(inputTextView.textView)
     }
 
+    /// Give the input text view first-responder status and park the caret at
+    /// the end of the current text. Used when the Translate tab becomes
+    /// active so the user can keep typing without an extra click.
+    /// Deferred to the next runloop tick — the view may still be mid-swap
+    /// into the container when the caller fires this, so `view.window`
+    /// can be nil until AppKit finishes wiring the hierarchy.
+    func focusInputAtEnd() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let window = self.view.window else { return }
+            window.makeFirstResponder(self.inputTextView.textView)
+            let length = (self.inputTextView.text as NSString).length
+            self.inputTextView.textView.setSelectedRange(NSRange(location: length, length: 0))
+        }
+    }
+
     private func togglePin() {
         appState.isPanelPinned.toggle()
     }

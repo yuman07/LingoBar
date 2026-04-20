@@ -141,6 +141,9 @@ final class MainContentViewController: NSViewController {
 
     private func showTranslate() {
         swap(to: translationVC.view)
+        // Drop focus into the input with the caret at the end so the user can
+        // keep typing immediately after switching tabs, without a click.
+        translationVC.focusInputAtEnd()
     }
 
     private func showHistory() {
