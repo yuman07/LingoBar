@@ -67,6 +67,18 @@ final class StatusBarPopoverPanel: NSPanel {
         close()
     }
 
+    /// ⌘W is an explicit user action — close unconditionally, the same as
+    /// clicking the menu bar icon or firing the global shortcut. The pin lock
+    /// only suppresses *implicit* auto-close (click-outside, Esc).
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
+           event.charactersIgnoringModifiers == "w" {
+            close()
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
+    }
+
     private func embed(_ vc: NSViewController) {
         let child = vc.view
         child.translatesAutoresizingMaskIntoConstraints = false
