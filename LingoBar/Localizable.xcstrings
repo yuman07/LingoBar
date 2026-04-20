@@ -280,7 +280,7 @@
     "Toggle Translator" : {
       "localizations" : {
         "zh-Hans" : {
-          "stringUnit" : { "state" : "translated", "value" : "切换翻译窗口" }
+          "stringUnit" : { "state" : "translated", "value" : "打开或关闭翻译窗口" }
         }
       }
     },
