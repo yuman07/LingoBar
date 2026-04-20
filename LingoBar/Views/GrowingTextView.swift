@@ -73,7 +73,7 @@ final class GrowingTextView: NSView {
         scrollView.hasVerticalScroller = false
         scrollView.autohidesScrollers = true
         scrollView.borderType = .noBorder
-        scrollView.verticalScrollElasticity = .allowed
+        scrollView.verticalScrollElasticity = .none
         scrollView.translatesAutoresizingMaskIntoConstraints = false
     }
 
@@ -137,6 +137,14 @@ final class GrowingTextView: NSView {
         let needs = lastReportedHeight > maxVisibleHeight
         if scrollView.hasVerticalScroller != needs {
             scrollView.hasVerticalScroller = needs
+        }
+        // Match elasticity to scroll need: when the content fits, even a soft
+        // two-finger drag shouldn't rubber-band the text — there is nothing to
+        // reveal. Re-allow bounce when there's real overflow so the edge feels
+        // natural.
+        let elasticity: NSScrollView.Elasticity = needs ? .allowed : .none
+        if scrollView.verticalScrollElasticity != elasticity {
+            scrollView.verticalScrollElasticity = elasticity
         }
     }
 }
