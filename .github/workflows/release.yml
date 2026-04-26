@@ -15,6 +15,11 @@ concurrency:
   group: release-${{ inputs.version }}
   cancel-in-progress: false
 
+# Opt into Node.js 24 for JS-based actions now to silence the Node 20
+# deprecation warning emitted by actions/checkout@v4 on the runners.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -58,10 +63,12 @@ jobs:
       matrix:
         include:
           # SPEC §四: macOS-only, Apple Silicon, deployment target macOS 15.
-          # macos-15 runners are arm64, matching the build product architecture.
+          # The runner itself is newer than the deployment target — a macos-26
+          # arm64 image carries Xcode 17 with the SDK that wrote our project's
+          # format 100 .xcodeproj, while still building back to macOS 15.
           - arch: arm64
             min_macos: '15'
-            runner: macos-15
+            runner: macos-26
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Check out
