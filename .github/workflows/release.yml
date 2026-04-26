@@ -15,11 +15,6 @@ concurrency:
   group: release-${{ inputs.version }}
   cancel-in-progress: false
 
-# Opt into Node.js 24 for JS-based actions now to silence the Node 20
-# deprecation warning emitted by actions/checkout@v4 on the runners.
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
-
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -38,7 +33,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}
       - name: Create draft release
@@ -72,7 +67,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}
 
@@ -80,6 +75,22 @@ jobs:
         run: |
           sw_vers
           uname -m
+          ls -1 /Applications | grep -i '^Xcode' || true
+          xcodebuild -version
+
+      - name: Select newest installed Xcode
+        run: |
+          set -euo pipefail
+          # Pick the highest-numbered Xcode_*.app on the runner image. Our local
+          # Xcode wrote objectVersion = 100, which only the very latest Xcodes
+          # can parse — pinning to the runner's default Xcode caught us with
+          # Xcode 26.2 last time, so always select the newest one available.
+          newest=$(ls -1d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -n1 || true)
+          if [ -z "$newest" ]; then
+            newest="/Applications/Xcode.app"
+          fi
+          echo "Selecting: $newest"
+          sudo xcode-select -s "$newest/Contents/Developer"
           xcodebuild -version
 
       - name: Build LingoBar.app
@@ -139,7 +150,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}
       - name: Publish release
