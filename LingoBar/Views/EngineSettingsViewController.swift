@@ -193,6 +193,13 @@ extension EngineSettingsViewController: NSTableViewDataSource, NSTableViewDelega
 
     func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat { rowHeight }
 
+    /// Reject row selection entirely. The list's interactions live on
+    /// individual subviews (checkbox toggle, whole-row drag), so a selected
+    /// row carries no meaning here. Letting selection happen would flip the
+    /// row's `interiorBackgroundStyle` to `.emphasized` and re-tint
+    /// quaternaryLabelColor symbols (the drag handle) to white.
+    func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool { false }
+
     func tableView(_ tableView: NSTableView, pasteboardWriterForRow row: Int) -> (any NSPasteboardWriting)? {
         let item = NSPasteboardItem()
         item.setString("\(row)", forType: rowPasteboardType)
@@ -280,6 +287,9 @@ private final class EngineRowView: NSView {
     private func setup() {
         checkbox.setButtonType(.switch)
         checkbox.title = ""
+        // Match the Launch-at-Login checkbox at the top of the Settings tab
+        // so the two checkbox styles read as the same control.
+        checkbox.controlSize = .small
         checkbox.translatesAutoresizingMaskIntoConstraints = false
 
         handleView.image = NSImage(systemSymbolName: "line.3.horizontal", accessibilityDescription: nil)
