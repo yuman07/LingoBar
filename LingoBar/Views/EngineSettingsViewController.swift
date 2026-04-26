@@ -103,19 +103,13 @@ final class EngineSettingsViewController: NSViewController {
         tableScroll.verticalScrollElasticity = .automatic
         tableScroll.horizontalScrollElasticity = .none
 
-        priorityBox = NSView()
-        priorityBox.wantsLayer = true
-        priorityBox.layer?.cornerRadius = 8
-        priorityBox.layer?.cornerCurve = .continuous
-        priorityBox.layer?.borderWidth = 0.5
-        priorityBox.layer?.backgroundColor = NSColor.textBackgroundColor.withAlphaComponent(0.5).cgColor
-        priorityBox.layer?.borderColor = NSColor.separatorColor.cgColor
+        priorityBox = EngineListBoxView()
         priorityBox.translatesAutoresizingMaskIntoConstraints = false
         priorityBox.addSubview(tableScroll)
 
         NSLayoutConstraint.activate([
-            tableScroll.topAnchor.constraint(equalTo: priorityBox.topAnchor, constant: 2),
-            tableScroll.bottomAnchor.constraint(equalTo: priorityBox.bottomAnchor, constant: -2),
+            tableScroll.topAnchor.constraint(equalTo: priorityBox.topAnchor, constant: 4),
+            tableScroll.bottomAnchor.constraint(equalTo: priorityBox.bottomAnchor, constant: -4),
             tableScroll.leadingAnchor.constraint(equalTo: priorityBox.leadingAnchor),
             tableScroll.trailingAnchor.constraint(equalTo: priorityBox.trailingAnchor),
         ])
@@ -227,6 +221,42 @@ extension EngineSettingsViewController: NSTableViewDataSource, NSTableViewDelega
     }
 }
 
+// MARK: - Engine list container
+
+/// Translucent rounded surface that hosts the engine table. Matches the
+/// fill used by the Translate-tab segmented control and the Settings pills
+/// so the engine list reads as part of the same surface family instead of
+/// an opaque card pasted over the popover material.
+private final class EngineListBoxView: NSView {
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        layer?.cornerRadius = 10
+        layer?.cornerCurve = .continuous
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    /// Opt out of vibrancy so the layer fill renders flat over the popover
+    /// material — same trick PillFieldBox uses, otherwise the translucent
+    /// alpha gets re-tinted and the surface drifts off the pill palette.
+    override var allowsVibrancy: Bool { false }
+
+    override func updateLayer() {
+        super.updateLayer()
+        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil
+        layer?.backgroundColor = (isDark
+            ? NSColor(white: 1, alpha: 0.07)
+            : NSColor(white: 0, alpha: 0.05)).cgColor
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+}
+
 // MARK: - Engine row view
 
 private final class EngineRowView: NSView {
@@ -249,8 +279,8 @@ private final class EngineRowView: NSView {
         checkbox.translatesAutoresizingMaskIntoConstraints = false
 
         handleView.image = NSImage(systemSymbolName: "line.3.horizontal", accessibilityDescription: nil)
-        handleView.symbolConfiguration = .init(pointSize: 12, weight: .regular)
-        handleView.contentTintColor = .tertiaryLabelColor
+        handleView.symbolConfiguration = .init(pointSize: 10, weight: .regular)
+        handleView.contentTintColor = .quaternaryLabelColor
         handleView.translatesAutoresizingMaskIntoConstraints = false
 
         iconView.symbolConfiguration = .init(pointSize: 14, weight: .regular)
@@ -309,13 +339,18 @@ private final class EngineRowView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         // Thin divider hugging the bottom edge of every row except the last.
-        // The parent container is already visually bordered, so we only need
-        // separators between items.
+        // Use the same translucent palette as the segmented control's
+        // dividers so the row separator blends with the box's vibrancy
+        // instead of asserting itself like the old separatorColor line did.
         guard let table = findTableView(from: self) else { return }
         let ownRow = table.row(for: self)
         guard ownRow >= 0, ownRow < table.numberOfRows - 1 else { return }
         let line = NSRect(x: 12, y: 0, width: bounds.width - 24, height: 0.5)
-        NSColor.separatorColor.withAlphaComponent(0.6).setFill()
+        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil
+        let color = isDark
+            ? NSColor(white: 1, alpha: 0.10)
+            : NSColor(white: 0, alpha: 0.08)
+        color.setFill()
         line.fill()
     }
 
