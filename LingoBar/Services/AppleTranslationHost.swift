@@ -17,7 +17,7 @@ struct AppleTranslationHostView: View {
                 do {
                     let response = try await session.translate(text)
                     let detected = response.sourceLanguage.languageCode.map {
-                        SupportedLanguage.from(nlLanguageCode: $0.identifier)
+                        SupportedLanguage.from(languageCode: $0.identifier)
                     }
                     engine.handleResult(translatedText: response.targetText, detectedSource: detected)
                 } catch {

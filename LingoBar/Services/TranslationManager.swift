@@ -9,7 +9,7 @@ extension Notification.Name {
 final class TranslationManager {
     let appleEngine = AppleTranslationEngine()
     private var debounceTask: Task<Void, Never>?
-    private let historyLimit = 100
+    private let historyLimit = 500
 
     /// History is session-scoped: a session starts when the input transitions
     /// from empty to non-empty and ends when the input next becomes empty.

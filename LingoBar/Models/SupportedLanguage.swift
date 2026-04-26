@@ -26,7 +26,9 @@ enum SupportedLanguage: String, CaseIterable, Codable, Sendable, Identifiable {
 
     var id: String { rawValue }
 
-    var localeIdentifier: String? {
+    /// BCP-47 tag used by Apple's Translation framework, NaturalLanguage's
+    /// `NLLanguage` raw values, and macOS locale identifiers. `nil` for `.auto`.
+    var bcp47Code: String? {
         switch self {
         case .auto: nil
         case .english: "en"
@@ -53,8 +55,8 @@ enum SupportedLanguage: String, CaseIterable, Codable, Sendable, Identifiable {
     }
 
     var localeLanguage: Locale.Language? {
-        guard let localeIdentifier else { return nil }
-        return Locale.Language(identifier: localeIdentifier)
+        guard let bcp47Code else { return nil }
+        return Locale.Language(identifier: bcp47Code)
     }
 
     var displayName: String {
@@ -83,32 +85,6 @@ enum SupportedLanguage: String, CaseIterable, Codable, Sendable, Identifiable {
         }
     }
 
-    var nlLanguageCode: String? {
-        switch self {
-        case .auto: nil
-        case .english: "en"
-        case .simplifiedChinese: "zh-Hans"
-        case .traditionalChinese: "zh-Hant"
-        case .japanese: "ja"
-        case .korean: "ko"
-        case .french: "fr"
-        case .german: "de"
-        case .spanish: "es"
-        case .portuguese: "pt"
-        case .italian: "it"
-        case .russian: "ru"
-        case .arabic: "ar"
-        case .hindi: "hi"
-        case .thai: "th"
-        case .vietnamese: "vi"
-        case .indonesian: "id"
-        case .turkish: "tr"
-        case .polish: "pl"
-        case .dutch: "nl"
-        case .ukrainian: "uk"
-        }
-    }
-
     static var sourceLanguages: [SupportedLanguage] {
         allCases
     }
@@ -117,14 +93,35 @@ enum SupportedLanguage: String, CaseIterable, Codable, Sendable, Identifiable {
         allCases.filter { $0 != .auto }
     }
 
-    static func from(nlLanguageCode code: String) -> SupportedLanguage {
-        if code.hasPrefix("zh-Hans") || code == "zh" {
+    /// Resolve a BCP-47-ish code from any of our upstreams to a SupportedLanguage:
+    /// - NaturalLanguage emits `zh-Hans` / `zh-Hant`
+    /// - Google's web endpoint emits `zh-CN` / `zh-TW`
+    /// - Locale / Translation framework may emit a bare `zh` or a region-tagged
+    ///   `en-US`
+    /// Falls back to `systemDefault` when nothing matches.
+    static func from(languageCode code: String) -> SupportedLanguage {
+        let lower = code.lowercased()
+        if lower.hasPrefix("zh") {
+            // zh-Hant / zh-TW / zh-HK / zh-MO → Traditional; everything else
+            // (zh, zh-Hans, zh-CN, zh-SG, …) → Simplified.
+            if lower.contains("hant")
+                || lower.hasSuffix("-tw")
+                || lower.hasSuffix("-hk")
+                || lower.hasSuffix("-mo") {
+                return .traditionalChinese
+            }
             return .simplifiedChinese
         }
-        if code.hasPrefix("zh-Hant") {
-            return .traditionalChinese
+        if let exact = allCases.first(where: { $0.bcp47Code?.lowercased() == lower }) {
+            return exact
         }
-        return allCases.first { $0.nlLanguageCode == code } ?? .systemDefault
+        // Region-tagged code (e.g. "en-US"): retry on the primary language.
+        let primary = lower.split(separator: "-").first.map(String.init) ?? lower
+        if primary != lower,
+           let match = allCases.first(where: { $0.bcp47Code?.lowercased() == primary }) {
+            return match
+        }
+        return .systemDefault
     }
 
     /// Detect the dominant language of `text` using Natural Language, with a
@@ -136,7 +133,7 @@ enum SupportedLanguage: String, CaseIterable, Codable, Sendable, Identifiable {
         let recognizer = NLLanguageRecognizer()
         recognizer.processString(text)
         guard let dominant = recognizer.dominantLanguage else { return .systemDefault }
-        let detected = from(nlLanguageCode: dominant.rawValue)
+        let detected = from(languageCode: dominant.rawValue)
         guard detected.isChinese else { return detected }
         return disambiguateChineseVariant(in: text, fallback: detected)
     }
@@ -175,7 +172,7 @@ enum SupportedLanguage: String, CaseIterable, Codable, Sendable, Identifiable {
             return .simplifiedChinese
         }
 
-        return allCases.first { $0.nlLanguageCode == code } ?? .english
+        return allCases.first { $0.bcp47Code == code } ?? .english
     }
 
     var isChinese: Bool {

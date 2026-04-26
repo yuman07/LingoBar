@@ -48,7 +48,7 @@ struct GoogleTranslationEngine: TranslationEngineProtocol {
 
         // root[2] carries the detected source language when sl=auto.
         let detectedSource = (root.count > 2 ? root[2] as? String : nil)
-            .map { SupportedLanguage.from(nlLanguageCode: $0) }
+            .map { SupportedLanguage.from(languageCode: $0) }
 
         return TranslationResult(
             translatedText: translatedText,

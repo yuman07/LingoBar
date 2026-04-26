@@ -1,11 +1,6 @@
 import Combine
 import Foundation
 
-extension Notification.Name {
-    static let appSettingsDidChange = Notification.Name("LingoBar.appSettingsDidChange")
-    static let engineListDidChange = Notification.Name("LingoBar.engineListDidChange")
-}
-
 @MainActor
 final class AppSettings: ObservableObject {
     static let minEngineTimeoutSeconds = 1
@@ -21,8 +16,6 @@ final class AppSettings: ObservableObject {
         didSet {
             guard oldValue != engineList else { return }
             defaults.set(engineList.map(\.rawValue), forKey: Keys.engineList)
-            NotificationCenter.default.post(name: .engineListDidChange, object: self)
-            notify()
         }
     }
 
@@ -38,8 +31,6 @@ final class AppSettings: ObservableObject {
             }
             guard oldValue != enabledEngines else { return }
             defaults.set(enabledEngines.map(\.rawValue), forKey: Keys.enabledEngines)
-            NotificationCenter.default.post(name: .engineListDidChange, object: self)
-            notify()
         }
     }
 
@@ -54,21 +45,18 @@ final class AppSettings: ObservableObject {
                 return
             }
             defaults.set(engineTimeoutSeconds, forKey: Keys.engineTimeoutSeconds)
-            notify()
         }
     }
 
     @Published var sourceLanguage: SupportedLanguage {
         didSet {
             defaults.set(sourceLanguage.rawValue, forKey: Keys.sourceLanguage)
-            notify()
         }
     }
 
     @Published var targetLanguage: SupportedLanguage {
         didSet {
             defaults.set(targetLanguage.rawValue, forKey: Keys.targetLanguage)
-            notify()
         }
     }
 
@@ -156,10 +144,6 @@ final class AppSettings: ObservableObject {
             .sorted { $0.displayName > $1.displayName }
         result.append(contentsOf: missing)
         return result
-    }
-
-    private func notify() {
-        NotificationCenter.default.post(name: .appSettingsDidChange, object: self)
     }
 
     private enum Keys {
