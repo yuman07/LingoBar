@@ -332,12 +332,6 @@ extension HistoryViewController: NSTableViewDataSource, NSTableViewDelegate {
         rowView.drawsTopSeparator = row > 0
         return rowView
     }
-
-    func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool {
-        return true
-    }
-
-    func tableView(_ tableView: NSTableView, didClick tableColumn: NSTableColumn) {}
 }
 
 /// Row view that paints a hairline divider under each row except the last,

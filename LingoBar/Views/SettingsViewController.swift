@@ -177,11 +177,6 @@ final class SettingsViewController: NSViewController {
     }
 }
 
-/// Flipped content view so NSScrollView lays out its document top-to-bottom.
-final class FlippedView: NSView {
-    override var isFlipped: Bool { true }
-}
-
 /// Pill-shaped host for a plain `NSTextField`. Wraps the unbezeled field in
 /// the same translucent rounded background used by `RecorderPillBox`, so the
 /// timeout input visually matches the shortcut recorder.

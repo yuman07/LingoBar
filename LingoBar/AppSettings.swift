@@ -93,11 +93,6 @@ final class AppSettings: ObservableObject {
         appState.targetLanguage = targetLanguage
     }
 
-    func saveLanguages(from appState: AppState) {
-        sourceLanguage = appState.sourceLanguage
-        targetLanguage = appState.targetLanguage
-    }
-
     // MARK: - Engine list
 
     /// Engines the user has enabled, in their preferred order. This is the

@@ -88,18 +88,12 @@ extension SupportedLanguage {
     }
 }
 
-enum EngineError: Error, LocalizedError {
+/// Internal failure flavors thrown by Google's web endpoint and the engine
+/// timeout race. The translation manager only switches on TranslationError;
+/// these are caught and `continue`d, so they don't carry localized messages.
+enum EngineError: Error {
     case networkError
     case apiError(Int)
     case parseError
     case timedOut
-
-    var errorDescription: String? {
-        switch self {
-        case .networkError: String(localized: "Network error. Please check your connection.")
-        case .apiError(let code): String(localized: "API error (code: \(code)).")
-        case .parseError: String(localized: "Failed to parse translation response.")
-        case .timedOut: String(localized: "Translation request timed out.")
-        }
-    }
 }

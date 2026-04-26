@@ -1,5 +1,4 @@
 import AppKit
-import Combine
 import KeyboardShortcuts
 
 @MainActor
@@ -13,10 +12,8 @@ final class StatusBarController {
     // know it's the click-outside race (click landed on our own icon, which
     // both resigns key and fires the button action) and should not reopen.
     private var statusPanelAutoClosedEventTimestamp: TimeInterval?
-    private var cancellables: Set<AnyCancellable> = []
 
     private var appState: AppState { SharedEnvironment.shared.appState! }
-    private var appSettings: AppSettings { SharedEnvironment.shared.appSettings! }
 
     init() {
         setupStatusItem()
@@ -137,7 +134,6 @@ final class StatusBarController {
             self?.appState.clearContent()
             self?.appState.activeTab = .translate
         }
-        appSettings.saveLanguages(from: appState)
     }
 
     // MARK: - Context Menu
