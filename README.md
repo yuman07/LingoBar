@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="screenshots/icon.png" width="128" height="128" alt="LingoBar app icon">
+</p>
+
 <h1 align="center">LingoBar</h1>
 
 <p align="center"><strong>A native macOS menu-bar translation tool. Click, translate, get back to work.</strong></p>

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="screenshots/icon.png" width="128" height="128" alt="LingoBar 应用图标">
+</p>
+
 <h1 align="center">LingoBar</h1>
 
 <p align="center"><strong>原生的 macOS 菜单栏翻译工具，点一下就翻译，翻完就回去干活。</strong></p>
