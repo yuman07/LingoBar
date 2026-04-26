@@ -59,10 +59,11 @@ final class EngineSettingsViewController: NSViewController {
             hint.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             hint.trailingAnchor.constraint(equalTo: view.trailingAnchor),
 
-            // Keep the hint kissing the list (tiny 2pt gap) so they read as
-            // a single unit — label + rounded list below — instead of two
-            // unrelated pieces floating apart.
-            box.topAnchor.constraint(equalTo: hint.bottomAnchor, constant: 2),
+            // Pin the box flush to the hint's baseline-trimmed bottom so the
+            // annotation reads as a caption attached to the list rather than
+            // a paragraph floating above it. The hint label already carries
+            // its own descender padding, which gives the gap visual room.
+            box.topAnchor.constraint(equalTo: hint.bottomAnchor),
             box.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             box.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             box.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -119,7 +120,10 @@ final class EngineSettingsViewController: NSViewController {
     private func makeHintLabel() -> NSView {
         let label = NSTextField(labelWithString: String(localized: "Translations try enabled engines top-to-bottom; drag to reorder."))
         label.font = .preferredFont(forTextStyle: .footnote)
-        label.textColor = .secondaryLabelColor
+        // Tertiary (not secondary) so the line reads as an inline annotation
+        // for the list below — quieter than form labels like 请求超时, which
+        // sit at the default body color.
+        label.textColor = .tertiaryLabelColor
         label.lineBreakMode = .byWordWrapping
         label.maximumNumberOfLines = 0
         label.preferredMaxLayoutWidth = 280
