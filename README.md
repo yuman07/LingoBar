@@ -47,7 +47,6 @@ LingoBar lives in your macOS menu bar. Click the icon — or hit a global hotkey
 - **Pin to keep open** — a pin button locks the popover so click-outside / `Esc` won't close it, useful while reading or referencing the panel.
 - **Custom in-list reorder** — engine rows are reordered with a vertical mouse-tracking drag confined to the list; nothing flies across the screen.
 - **Global hotkey, customizable** — recorder lives inside the Settings tab (powered by [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts)); default `⌥⌘T`.
-- **Auto-update via Sparkle** — check / download / install from the right-click menu.
 
 ## Screenshots
 
@@ -124,7 +123,7 @@ This removes the `com.apple.quarantine` extended attribute Gatekeeper reads. The
 - **Install / register the Command Line Tools standalone** — `xcode-select --install`. After Xcode is installed, also run `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer` once so command-line tools route to Xcode's toolchain.
 - **Upgrade** — Mac App Store handles Xcode upgrades; CLT upgrades come down via **System Settings → General → Software Update**.
 
-Swift 6.3 ships with Xcode 26 — there's no separate Swift toolchain to install. The project's SwiftPM dependencies (Sparkle, KeyboardShortcuts) resolve automatically the first time you open the project in Xcode.
+Swift 6.3 ships with Xcode 26 — there's no separate Swift toolchain to install. The project's SwiftPM dependency (KeyboardShortcuts) resolves automatically the first time you open the project in Xcode.
 
 ### Build and run
 
@@ -133,7 +132,7 @@ Swift 6.3 ships with Xcode 26 — there's no separate Swift toolchain to install
 git clone https://github.com/yuman07/LingoBar.git
 cd LingoBar
 
-# 2. Open in Xcode — SwiftPM will resolve Sparkle + KeyboardShortcuts on first open
+# 2. Open in Xcode — SwiftPM will resolve KeyboardShortcuts on first open
 open LingoBar.xcodeproj
 
 # 3. From Xcode: select the LingoBar scheme and press ⌘R to build & run.
@@ -149,7 +148,7 @@ open build/Build/Products/Debug/LingoBar.app
 
 ## Technical Overview
 
-LingoBar is a single-binary AppKit app that hides from the Dock and renders its UI inside one popover-style `NSPanel` anchored to the menu-bar status item. The popover hosts a custom segmented tab bar (Translate / History / Settings) with three sibling view controllers; tab state lives on a shared `AppState`. Translation requests are debounced in `TranslationManager`, which iterates the user's enabled engines top-to-bottom under a shared timeout, falling through on error and updating the output header's engine icon when one finally returns a result. History writes go to SwiftData with session-scoped aggregation (one burst of typing → one row that updates in place) and a 500-row cap that evicts the oldest non-favorite. Settings live in `UserDefaults`; the global hotkey is bound through Sindresorhus's `KeyboardShortcuts` package and updates the menu-item shortcut hint live; auto-update is owned by Sparkle.
+LingoBar is a single-binary AppKit app that hides from the Dock and renders its UI inside one popover-style `NSPanel` anchored to the menu-bar status item. The popover hosts a custom segmented tab bar (Translate / History / Settings) with three sibling view controllers; tab state lives on a shared `AppState`. Translation requests are debounced in `TranslationManager`, which iterates the user's enabled engines top-to-bottom under a shared timeout, falling through on error and updating the output header's engine icon when one finally returns a result. History writes go to SwiftData with session-scoped aggregation (one burst of typing → one row that updates in place) and a 500-row cap that evicts the oldest non-favorite. Settings live in `UserDefaults`; the global hotkey is bound through Sindresorhus's `KeyboardShortcuts` package and updates the menu-item shortcut hint live.
 
 ### Tech stack
 
@@ -161,7 +160,6 @@ LingoBar is a single-binary AppKit app that hides from the Dock and renders its 
 | Translation engines  | Apple `Translation` framework (on-device); Google `translate.googleapis.com` public endpoint |
 | Persistence          | `UserDefaults` (settings); SwiftData (history)                                      |
 | Global hotkey        | [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) by Sindresorhus |
-| Auto-update          | [Sparkle](https://github.com/sparkle-project/Sparkle)                               |
 | Login item           | `ServiceManagement.SMAppService`                                                    |
 | TTS                  | `AVSpeechSynthesizer`                                                               |
 | Distribution         | Standalone DMG, non-sandboxed, Developer ID + Notarization (planned)                |
@@ -203,14 +201,13 @@ flowchart LR
     AppSettings -.->|reads / writes| Defaults[(UserDefaults)]
 
     StatusBarController <-.->|registers shortcut| Shortcuts([KeyboardShortcuts])
-    AppDelegate <-.->|update feed| Sparkle([Sparkle])
     Tx -->|speak| TTS[TTSService]
     TTS -.->|drives| Speech([AVSpeechSynthesizer])
 ```
 
 - **Main data flow** — `TranslationVC` writes the user's text into `AppState.inputText`; the `TranslationManager` subscriber debounces ~500 ms, iterates the user's active engines under a shared timeout, and writes the winner's text plus engine icon back through `AppState.outputText` / `currentEngineType`.
 - **Engine fallback** — `TranslationManager` runs `AppEng → GoogleEng` (or whatever order the user configured) sequentially. Each engine has the same per-request timeout from `AppSettings.engineTimeoutSeconds`; an error or timeout drops to the next checked engine; an empty input resets the active engine to the first checked one.
-- **External services** — `KeyboardShortcuts` owns the global hotkey ⇄ `StatusBarController` round-trip; `Sparkle` owns the update feed and is wired in once at launch; the Apple `Translation` framework runs on-device and may surface a "language pack not installed" failure that the manager treats as a normal engine failure (next engine takes over).
+- **External services** — `KeyboardShortcuts` owns the global hotkey ⇄ `StatusBarController` round-trip; the Apple `Translation` framework runs on-device and may surface a "language pack not installed" failure that the manager treats as a normal engine failure (next engine takes over).
 - **Persistence** — `UserDefaults` stores everything in `AppSettings` (engine order, enable set, timeout, language preferences, hotkey id); SwiftData backs `TranslationRecord` for history and feeds the History tab's search and favorites; the two are deliberately separate so settings load instantly at launch and history never blocks the popover open.
 
 ### Source layout
@@ -218,7 +215,7 @@ flowchart LR
 ```
 LingoBar/
 |-- LingoBarApp.swift            # @main, hands off to AppDelegate
-|-- AppDelegate.swift            # NSApplicationDelegate, Sparkle wiring
+|-- AppDelegate.swift            # NSApplicationDelegate, app-wide wiring
 |-- AppState.swift               # @MainActor ObservableObject, transient runtime state
 |-- AppSettings.swift            # @MainActor, UserDefaults-backed settings
 |-- LingoBar.entitlements        # network.client only (no sandbox)
@@ -301,7 +298,6 @@ The result is a drag that feels like a System-Settings-style reorder but never e
 
 ## Acknowledgments
 
-- [Sparkle](https://github.com/sparkle-project/Sparkle) — auto-update for Mac apps.
 - [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) by Sindre Sorhus — global hotkey recording.
 - Apple's [Translation framework](https://developer.apple.com/documentation/translation) — on-device translation engine.
 

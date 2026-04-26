@@ -18,7 +18,6 @@
 		7B1CA0051A2B3C4D5E6F7A05 /* StatusBarPopoverPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1CA0061A2B3C4D5E6F7A06 /* StatusBarPopoverPanel.swift */; };
 		6275FBE80F35FAD1545D2E53 /* AppleTranslationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92375AEE639DC4A151AF8B1C /* AppleTranslationEngine.swift */; };
 		9B5CA0031A2B3C4D5E6F7A03 /* AppleTranslationHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B5CA0041A2B3C4D5E6F7A04 /* AppleTranslationHost.swift */; };
-		6F4895C88AEEE1BF108AF72A /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 0E6228D995BD0B8EE7EE8080 /* Sparkle */; };
 		7549869EFC93129DE856E9BC /* TranslationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C83635AFD914DC00A671E2DB /* TranslationManager.swift */; };
 		7E6D8211640D60AFFC114E53 /* LingoBarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E13DE44F429E74AE2958C5AB /* LingoBarApp.swift */; };
 		80C8B5D6E2DD4F2F6ABAC7F3 /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22C17A40FD84A539D800FF2 /* StatusBarController.swift */; };
@@ -71,7 +70,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				8E020B725A5546F1B32EA20E /* KeyboardShortcuts in Frameworks */,
-				6F4895C88AEEE1BF108AF72A /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -185,7 +183,6 @@
 			name = LingoBar;
 			packageProductDependencies = (
 				716777C20879DAC936BBE255 /* KeyboardShortcuts */,
-				0E6228D995BD0B8EE7EE8080 /* Sparkle */,
 			);
 			productName = LingoBar;
 			productReference = 86CCE34FE28599C8F673221A /* LingoBar.app */;
@@ -214,7 +211,6 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				671EBD22C9CCBC9668700576 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
-				62BA330791D62F295CB9F6F0 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 100;
 			productRefGroup = 6E586DDE0840E6B843A76877 /* Products */;
@@ -466,14 +462,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		62BA330791D62F295CB9F6F0 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/sparkle-project/Sparkle";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.6.0;
-			};
-		};
 		671EBD22C9CCBC9668700576 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
@@ -485,11 +473,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		0E6228D995BD0B8EE7EE8080 /* Sparkle */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 62BA330791D62F295CB9F6F0 /* XCRemoteSwiftPackageReference "Sparkle" */;
-			productName = Sparkle;
-		};
 		716777C20879DAC936BBE255 /* KeyboardShortcuts */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 671EBD22C9CCBC9668700576 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;

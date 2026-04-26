@@ -141,7 +141,6 @@ final class StatusBarController {
     private func showContextMenu() {
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: String(localized: "Settings…"), action: #selector(openSettings), keyEquivalent: ","))
-        menu.addItem(NSMenuItem(title: String(localized: "Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: ""))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: String(localized: "About LingoBar"), action: #selector(showAbout), keyEquivalent: ""))
         menu.addItem(.separator())
@@ -164,10 +163,6 @@ final class StatusBarController {
             return
         }
         openStatusPanel()
-    }
-
-    @objc private func checkForUpdates() {
-        SharedEnvironment.shared.updaterController?.checkForUpdates(nil)
     }
 
     @objc private func showAbout() {

@@ -1,5 +1,4 @@
 import AppKit
-import Sparkle
 import SwiftData
 
 @MainActor
@@ -24,18 +23,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             appState.currentEngineType = first
         }
 
-        let updaterController = SPUStandardUpdaterController(
-            startingUpdater: true,
-            updaterDelegate: nil,
-            userDriverDelegate: nil
-        )
-
         let env = SharedEnvironment.shared
         env.appState = appState
         env.translationManager = manager
         env.appSettings = settings
         env.modelContainer = container
-        env.updaterController = updaterController
 
         installMainMenu()
 
@@ -90,6 +82,5 @@ final class SharedEnvironment {
     var translationManager: TranslationManager?
     var appSettings: AppSettings?
     var modelContainer: ModelContainer?
-    var updaterController: SPUStandardUpdaterController?
     private init() {}
 }
