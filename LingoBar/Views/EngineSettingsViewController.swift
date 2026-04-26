@@ -2,10 +2,10 @@ import AppKit
 import Combine
 
 /// Engine list section of the Settings tab: a footnote introducing the list,
-/// then a bordered engine list that fills the remaining vertical space. Lives
-/// embedded inside `SettingsViewController`; its owner is responsible for
-/// pinning the top to whatever sits above it and the bottom to the panel
-/// edge so the box can stretch to the window bottom.
+/// then a translucent box that hosts the engine rows. The list uses a custom
+/// in-place mouse-tracking reorder (not NSTableView's built-in
+/// NSDraggingSession) so the dragged row is locked to the vertical axis and
+/// stays inside the popover instead of floating freely across the screen.
 ///
 /// Layout:
 /// ```
@@ -17,15 +17,25 @@ import Combine
 /// └──────────────────────────────┘
 /// ```
 final class EngineSettingsViewController: NSViewController {
-    private let rowPasteboardType = NSPasteboard.PasteboardType("com.yuman.LingoBar.engineRow")
-
     private var priorityBox: NSView!
-    private var tableView: NSTableView!
-    private var tableScroll: NSScrollView!
+    private var listView: FlippedListContainer!
+    private var listHeightConstraint: NSLayoutConstraint!
+    private var rowViews: [EngineRowView] = []
 
     private var cancellables: Set<AnyCancellable> = []
     private var settings: AppSettings { SharedEnvironment.shared.appSettings! }
     private let rowHeight: CGFloat = 34
+    private let listInset: CGFloat = 4
+
+    private var dragState: DragState?
+
+    private struct DragState {
+        let draggedRow: EngineRowView
+        let originalEngine: TranslationEngineType
+        let startMouseY: CGFloat
+        let startFrameY: CGFloat
+        var visualOrder: [TranslationEngineType]
+    }
 
     override func loadView() {
         let root = NSView()
@@ -71,48 +81,21 @@ final class EngineSettingsViewController: NSViewController {
     }
 
     private func makeEngineBox() -> NSView {
-        tableView = NSTableView()
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        tableView.headerView = nil
-        tableView.rowHeight = rowHeight
-        tableView.intercellSpacing = NSSize(width: 0, height: 0)
-        tableView.backgroundColor = .clear
-        tableView.selectionHighlightStyle = .none
-        tableView.allowsEmptySelection = true
-        tableView.allowsMultipleSelection = false
-        tableView.style = .inset
-        tableView.registerForDraggedTypes([rowPasteboardType])
-        tableView.draggingDestinationFeedbackStyle = .gap
-        tableView.dataSource = self
-        tableView.delegate = self
-
-        let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("engine"))
-        column.resizingMask = .autoresizingMask
-        tableView.addTableColumn(column)
-
-        // Scroll view with elasticity: when the row count overflows the box,
-        // the rubber-band bounce gives the list a native scroll feel instead
-        // of the stiff clipping we had with elasticity disabled.
-        tableScroll = NSScrollView()
-        tableScroll.translatesAutoresizingMaskIntoConstraints = false
-        tableScroll.hasVerticalScroller = true
-        tableScroll.hasHorizontalScroller = false
-        tableScroll.drawsBackground = false
-        tableScroll.documentView = tableView
-        tableScroll.autohidesScrollers = true
-        tableScroll.scrollerStyle = .overlay
-        tableScroll.verticalScrollElasticity = .automatic
-        tableScroll.horizontalScrollElasticity = .none
+        listView = FlippedListContainer()
+        listView.translatesAutoresizingMaskIntoConstraints = false
 
         priorityBox = EngineListBoxView()
         priorityBox.translatesAutoresizingMaskIntoConstraints = false
-        priorityBox.addSubview(tableScroll)
+        priorityBox.addSubview(listView)
+
+        listHeightConstraint = listView.heightAnchor.constraint(equalToConstant: 0)
 
         NSLayoutConstraint.activate([
-            tableScroll.topAnchor.constraint(equalTo: priorityBox.topAnchor, constant: 4),
-            tableScroll.bottomAnchor.constraint(equalTo: priorityBox.bottomAnchor, constant: -4),
-            tableScroll.leadingAnchor.constraint(equalTo: priorityBox.leadingAnchor),
-            tableScroll.trailingAnchor.constraint(equalTo: priorityBox.trailingAnchor),
+            listView.topAnchor.constraint(equalTo: priorityBox.topAnchor, constant: listInset),
+            listView.leadingAnchor.constraint(equalTo: priorityBox.leadingAnchor),
+            listView.trailingAnchor.constraint(equalTo: priorityBox.trailingAnchor),
+            listView.bottomAnchor.constraint(lessThanOrEqualTo: priorityBox.bottomAnchor, constant: -listInset),
+            listHeightConstraint,
         ])
         return priorityBox
     }
@@ -150,94 +133,175 @@ final class EngineSettingsViewController: NSViewController {
     }
 
     private func refresh() {
-        tableView.reloadData()
+        // The drag loop owns the row layout while it's running and commits
+        // the final order itself, so a mid-drag refresh would yank rows out
+        // from under the tracking loop.
+        guard dragState == nil else { return }
+        rebuildRows()
+        view.layoutSubtreeIfNeeded()
+        layoutRows(animated: false)
     }
 
-    // MARK: - Actions
+    private func rebuildRows() {
+        rowViews.forEach { $0.removeFromSuperview() }
+        rowViews.removeAll()
 
-    @objc fileprivate func toggleEnabled(_ sender: NSButton) {
-        let row = sender.tag
-        guard settings.engineList.indices.contains(row) else { return }
-        let engine = settings.engineList[row]
-        // The checkbox is disabled at the UI level when we're at count==1 and
-        // the user tries to uncheck the sole enabled engine, but `toggleEngine`
-        // is also defensive — a second enforcement point doesn't hurt.
-        settings.toggleEngine(engine)
+        for engine in settings.engineList {
+            let row = EngineRowView()
+            let isEnabled = settings.isEnabled(engine)
+            let canUncheck = settings.enabledEngines.count > 1
+            row.configure(
+                engine: engine,
+                isEnabled: isEnabled,
+                canToggleOff: canUncheck,
+                onToggle: { [weak self] in self?.settings.toggleEngine(engine) },
+                onDragHandleMouseDown: { [weak self, weak row] event in
+                    guard let self, let row else { return }
+                    self.beginDrag(row: row, event: event)
+                }
+            )
+            listView.addSubview(row)
+            rowViews.append(row)
+        }
+        listHeightConstraint.constant = CGFloat(rowViews.count) * rowHeight
     }
-}
 
-// MARK: - Table data / drag
-
-extension EngineSettingsViewController: NSTableViewDataSource, NSTableViewDelegate {
-    func numberOfRows(in tableView: NSTableView) -> Int {
-        settings.engineList.count
+    private func layoutRows(animated: Bool) {
+        let order = currentVisualOrder()
+        let width = listView.bounds.width
+        for (i, engine) in order.enumerated() {
+            guard let row = rowViews.first(where: { $0.engine == engine }) else { continue }
+            row.isLastRow = (i == order.count - 1)
+            // The dragged row is positioned by the tracking loop directly;
+            // relayout would fight the loop's own frame updates.
+            if let drag = dragState, row === drag.draggedRow { continue }
+            let target = NSRect(x: 0, y: CGFloat(i) * rowHeight, width: width, height: rowHeight)
+            if animated {
+                NSAnimationContext.runAnimationGroup { ctx in
+                    ctx.duration = 0.18
+                    ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                    ctx.allowsImplicitAnimation = true
+                    row.animator().frame = target
+                }
+            } else {
+                row.frame = target
+            }
+        }
     }
 
-    func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-        guard settings.engineList.indices.contains(row) else { return nil }
-        let engine = settings.engineList[row]
-        let isEnabled = settings.isEnabled(engine)
-        // Lock the lone remaining enabled engine: user must keep ≥1 checked.
-        let canUncheck = settings.enabledEngines.count > 1
-        let cell = EngineRowView()
-        cell.configure(
-            engine: engine,
-            isEnabled: isEnabled,
-            canToggleOff: canUncheck,
-            row: row,
-            toggleAction: #selector(toggleEnabled(_:)),
-            toggleTarget: self
+    private func currentVisualOrder() -> [TranslationEngineType] {
+        dragState?.visualOrder ?? settings.engineList
+    }
+
+    // MARK: - Drag tracking
+
+    private func beginDrag(row: EngineRowView, event: NSEvent) {
+        guard let engine = row.engine,
+              let window = view.window else { return }
+        // Hoist the dragged row above its siblings in z-order so its lifted
+        // shadow reads on top.
+        listView.addSubview(row, positioned: .above, relativeTo: nil)
+        row.beginDragVisual()
+        dragState = DragState(
+            draggedRow: row,
+            originalEngine: engine,
+            startMouseY: event.locationInWindow.y,
+            startFrameY: row.frame.origin.y,
+            visualOrder: settings.engineList
         )
-        return cell
+
+        var keepGoing = true
+        while keepGoing {
+            guard let next = window.nextEvent(
+                matching: [.leftMouseDragged, .leftMouseUp],
+                until: .distantFuture,
+                inMode: .eventTracking,
+                dequeue: true
+            ) else { break }
+            switch next.type {
+            case .leftMouseUp:
+                keepGoing = false
+            case .leftMouseDragged:
+                handleDragMove(event: next)
+            default:
+                break
+            }
+        }
+        endDrag()
     }
 
-    func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat { rowHeight }
+    private func handleDragMove(event: NSEvent) {
+        guard var state = dragState else { return }
+        // listView is flipped (y grows down); window Y is bottom-up. A mouse
+        // moving up has dy > 0 in window coords, which subtracts from the
+        // row's flipped origin.y so the row visually moves up with the cursor.
+        let dy = event.locationInWindow.y - state.startMouseY
+        let count = state.visualOrder.count
+        let maxY = max(0, CGFloat(count - 1) * rowHeight)
+        let newY = max(0, min(state.startFrameY - dy, maxY))
+        state.draggedRow.frame.origin.y = newY
 
-    /// Reject row selection entirely. The list's interactions live on
-    /// individual subviews (checkbox toggle, whole-row drag), so a selected
-    /// row carries no meaning here. Letting selection happen would flip the
-    /// row's `interiorBackgroundStyle` to `.emphasized` and re-tint
-    /// quaternaryLabelColor symbols (the drag handle) to white.
-    func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool { false }
-
-    func tableView(_ tableView: NSTableView, pasteboardWriterForRow row: Int) -> (any NSPasteboardWriting)? {
-        let item = NSPasteboardItem()
-        item.setString("\(row)", forType: rowPasteboardType)
-        return item
+        let centerY = newY + rowHeight / 2
+        let newIndex = max(0, min(count - 1, Int(centerY / rowHeight)))
+        let currentIndex = state.visualOrder.firstIndex(of: state.originalEngine) ?? 0
+        if newIndex != currentIndex {
+            var newOrder = state.visualOrder
+            newOrder.remove(at: currentIndex)
+            newOrder.insert(state.originalEngine, at: newIndex)
+            state.visualOrder = newOrder
+            self.dragState = state
+            layoutRows(animated: true)
+        } else {
+            self.dragState = state
+        }
     }
 
-    func tableView(
-        _ tableView: NSTableView,
-        validateDrop info: any NSDraggingInfo,
-        proposedRow row: Int,
-        proposedDropOperation dropOperation: NSTableView.DropOperation
-    ) -> NSDragOperation {
-        guard dropOperation == .above,
-              info.draggingSource as? NSTableView === tableView else { return [] }
-        return .move
-    }
+    private func endDrag() {
+        guard let state = dragState else { return }
+        let finalIndex = state.visualOrder.firstIndex(of: state.originalEngine) ?? 0
+        let originalIndex = settings.engineList.firstIndex(of: state.originalEngine) ?? 0
+        let targetFrame = NSRect(
+            x: 0,
+            y: CGFloat(finalIndex) * rowHeight,
+            width: listView.bounds.width,
+            height: rowHeight
+        )
+        let needsCommit = (finalIndex != originalIndex)
 
-    func tableView(
-        _ tableView: NSTableView,
-        acceptDrop info: any NSDraggingInfo,
-        row: Int,
-        dropOperation: NSTableView.DropOperation
-    ) -> Bool {
-        guard let items = info.draggingPasteboard.pasteboardItems,
-              let first = items.first,
-              let raw = first.string(forType: rowPasteboardType),
-              let source = Int(raw) else { return false }
-        settings.moveEngine(from: source, to: row)
-        return true
+        NSAnimationContext.runAnimationGroup({ ctx in
+            ctx.duration = 0.18
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            ctx.allowsImplicitAnimation = true
+            state.draggedRow.animator().frame = targetFrame
+        }, completionHandler: { [weak self] in
+            // The animation completion hops out of the main actor in the
+            // type system even though it fires on the main runloop in
+            // practice. Re-enter so we can touch the view, the VC's drag
+            // state, and the @MainActor settings without warnings.
+            MainActor.assumeIsolated {
+                state.draggedRow.endDragVisual()
+                self?.dragState = nil
+                // Commit AFTER the snap-back animation so the model write
+                // doesn't trigger a rebuild that yanks the visual mid-flight.
+                // moveEngine takes a "drop above row N" destination, not a
+                // final index — when moving an item DOWN, the row above
+                // which we want to land is one past finalIndex because the
+                // item itself was first removed from above.
+                if needsCommit {
+                    let dest = finalIndex > originalIndex ? finalIndex + 1 : finalIndex
+                    self?.settings.moveEngine(from: originalIndex, to: dest)
+                }
+            }
+        })
     }
 }
 
 // MARK: - Engine list container
 
-/// Translucent rounded surface that hosts the engine table. Matches the
-/// fill used by the Translate-tab segmented control and the Settings pills
-/// so the engine list reads as part of the same surface family instead of
-/// an opaque card pasted over the popover material.
+/// Translucent rounded surface that hosts the engine rows. Matches the fill
+/// used by the Translate-tab segmented control and the Settings pills so the
+/// engine list reads as part of the same surface family instead of an opaque
+/// card pasted over the popover material.
 private final class EngineListBoxView: NSView {
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -268,16 +332,33 @@ private final class EngineListBoxView: NSView {
     }
 }
 
+/// Flipped container so engine rows lay out top-to-bottom by their `frame.y`.
+private final class FlippedListContainer: NSView {
+    override var isFlipped: Bool { true }
+}
+
 // MARK: - Engine row view
 
 private final class EngineRowView: NSView {
+    private(set) var engine: TranslationEngineType?
+    var isLastRow: Bool = false {
+        didSet {
+            guard oldValue != isLastRow else { return }
+            needsDisplay = true
+        }
+    }
+
     private let checkbox = NSButton()
     private let iconView = NSImageView()
     private let label = NSTextField(labelWithString: "")
     private let handleView = NSImageView()
 
+    private var onToggle: (() -> Void)?
+    private var onDragHandleMouseDown: ((NSEvent) -> Void)?
+
     init() {
         super.init(frame: .zero)
+        wantsLayer = true
         setup()
     }
 
@@ -290,6 +371,8 @@ private final class EngineRowView: NSView {
         // Match the Launch-at-Login checkbox at the top of the Settings tab
         // so the two checkbox styles read as the same control.
         checkbox.controlSize = .small
+        checkbox.target = self
+        checkbox.action = #selector(checkboxClicked)
         checkbox.translatesAutoresizingMaskIntoConstraints = false
 
         handleView.image = NSImage(systemSymbolName: "line.3.horizontal", accessibilityDescription: nil)
@@ -334,20 +417,50 @@ private final class EngineRowView: NSView {
         engine: TranslationEngineType,
         isEnabled: Bool,
         canToggleOff: Bool,
-        row: Int,
-        toggleAction: Selector,
-        toggleTarget: AnyObject
+        onToggle: @escaping () -> Void,
+        onDragHandleMouseDown: @escaping (NSEvent) -> Void
     ) {
+        self.engine = engine
+        self.onToggle = onToggle
+        self.onDragHandleMouseDown = onDragHandleMouseDown
         iconView.image = NSImage(systemSymbolName: engine.iconName, accessibilityDescription: nil)
         label.stringValue = engine.displayName
         checkbox.state = isEnabled ? .on : .off
-        checkbox.tag = row
-        checkbox.target = toggleTarget
-        checkbox.action = toggleAction
         // "At least one engine must stay on": when the checkbox represents the
         // only enabled engine, disable it so the user can't uncheck it. Rows
         // that are already off stay enabled so the user can turn them on.
         checkbox.isEnabled = !isEnabled || canToggleOff
+    }
+
+    @objc private func checkboxClicked() { onToggle?() }
+
+    /// Whole-row drag, except over the checkbox: clicks on the checkbox stay
+    /// on the checkbox so the toggle still works, while clicks anywhere else
+    /// (handle, icon, label, padding) route to `self.mouseDown` and start
+    /// the reorder tracking loop.
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        let local = convert(point, from: superview)
+        if checkbox.frame.contains(local) {
+            return super.hitTest(point)
+        }
+        // Only claim the hit when the point is actually inside our bounds —
+        // a flipped parent can ask hitTest for points outside this row.
+        return bounds.contains(local) ? self : nil
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        onDragHandleMouseDown?(event)
+    }
+
+    func beginDragVisual() {
+        layer?.shadowColor = NSColor.black.cgColor
+        layer?.shadowOpacity = 0.2
+        layer?.shadowOffset = NSSize(width: 0, height: -2)
+        layer?.shadowRadius = 6
+    }
+
+    func endDragVisual() {
+        layer?.shadowOpacity = 0
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -356,9 +469,7 @@ private final class EngineRowView: NSView {
         // Use the same translucent palette as the segmented control's
         // dividers so the row separator blends with the box's vibrancy
         // instead of asserting itself like the old separatorColor line did.
-        guard let table = findTableView(from: self) else { return }
-        let ownRow = table.row(for: self)
-        guard ownRow >= 0, ownRow < table.numberOfRows - 1 else { return }
+        guard !isLastRow else { return }
         let line = NSRect(x: 12, y: 0, width: bounds.width - 24, height: 0.5)
         let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil
         let color = isDark
@@ -366,14 +477,5 @@ private final class EngineRowView: NSView {
             : NSColor(white: 0, alpha: 0.08)
         color.setFill()
         line.fill()
-    }
-
-    private func findTableView(from view: NSView) -> NSTableView? {
-        var current: NSView? = view.superview
-        while let v = current {
-            if let t = v as? NSTableView { return t }
-            current = v.superview
-        }
-        return nil
     }
 }
