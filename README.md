@@ -126,7 +126,7 @@ Swift 6.3 ships with Xcode 26 — there's no separate Swift toolchain to install
 
 ```bash
 # 1. Clone and enter the project
-git clone https://github.com/yuman/LingoBar.git
+git clone https://github.com/yuman07/LingoBar.git
 cd LingoBar
 
 # 2. Open in Xcode — SwiftPM will resolve Sparkle + KeyboardShortcuts on first open

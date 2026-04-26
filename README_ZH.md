@@ -126,7 +126,7 @@ Swift 6.3 已经随 Xcode 26 一同装好，不用单独装 Swift toolchain。Sw
 
 ```bash
 # 1. 克隆并进入项目
-git clone https://github.com/yuman/LingoBar.git
+git clone https://github.com/yuman07/LingoBar.git
 cd LingoBar
 
 # 2. 用 Xcode 打开 — 第一次打开时 SwiftPM 会自动拉 Sparkle 和 KeyboardShortcuts
