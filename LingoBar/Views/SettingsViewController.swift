@@ -94,15 +94,6 @@ final class SettingsViewController: NSViewController {
 
     private func makeTimeoutControl() -> NSView {
         timeoutField = NSTextField()
-        // The pill enforces a 22pt height by pinning the field's top/bottom,
-        // but NSTextFieldCell anchors its text to the top of the cell rect, so
-        // the digit lands above the pill's vertical center. Swap in a cell
-        // that re-centers the title rect at draw and edit time.
-        let cell = VerticallyCenteredTextFieldCell(textCell: "")
-        cell.isEditable = true
-        cell.isSelectable = true
-        cell.usesSingleLineMode = true
-        timeoutField.cell = cell
         timeoutField.alignment = .center
         timeoutField.controlSize = .small
         timeoutField.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
@@ -191,49 +182,6 @@ final class FlippedView: NSView {
     override var isFlipped: Bool { true }
 }
 
-/// `NSTextFieldCell` that vertically centers its title in the cell rect. The
-/// stock cell pins the title to the top of its bounds, which leaves the digit
-/// floating above center when the host pill stretches the field past its
-/// intrinsic height.
-final class VerticallyCenteredTextFieldCell: NSTextFieldCell {
-    override func titleRect(forBounds rect: NSRect) -> NSRect {
-        let base = super.titleRect(forBounds: rect)
-        let textHeight = attributedStringValue.size().height
-        let y = rect.origin.y + (rect.size.height - textHeight) / 2
-        return NSRect(x: base.origin.x, y: y, width: base.size.width, height: textHeight)
-    }
-
-    override func drawInterior(withFrame cellFrame: NSRect, in controlView: NSView) {
-        super.drawInterior(withFrame: titleRect(forBounds: cellFrame), in: controlView)
-    }
-
-    override func edit(withFrame rect: NSRect,
-                       in controlView: NSView,
-                       editor textObj: NSText,
-                       delegate: Any?,
-                       event: NSEvent?) {
-        super.edit(withFrame: titleRect(forBounds: rect),
-                   in: controlView,
-                   editor: textObj,
-                   delegate: delegate,
-                   event: event)
-    }
-
-    override func select(withFrame rect: NSRect,
-                         in controlView: NSView,
-                         editor textObj: NSText,
-                         delegate: Any?,
-                         start selStart: Int,
-                         length selLength: Int) {
-        super.select(withFrame: titleRect(forBounds: rect),
-                     in: controlView,
-                     editor: textObj,
-                     delegate: delegate,
-                     start: selStart,
-                     length: selLength)
-    }
-}
-
 /// Pill-shaped host for a plain `NSTextField`. Wraps the unbezeled field in
 /// the same translucent rounded background used by `RecorderPillBox`, so the
 /// timeout input visually matches the shortcut recorder.
@@ -251,19 +199,21 @@ final class PillFieldBox: NSView {
         field.translatesAutoresizingMaskIntoConstraints = false
         addSubview(field)
 
-        // Pin the field's top/bottom to the pill's edges (not just centerY) so
-        // the inner control's intrinsic height can't overflow the pill — both
-        // pills need to render at exactly the outer heightAnchor so their
-        // corner-radius arcs line up visually.
-        field.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
-        field.setContentHuggingPriority(.defaultLow, for: .vertical)
+        // Center the field's intrinsic-height frame in the pill instead of
+        // stretching it to the pill's full 22pt: NSTextFieldCell anchors its
+        // text to the top of the cell rect, so a stretched field draws its
+        // digit above the pill's vertical center. The lessThanOrEqual cap
+        // protects the pill's rounded ends if the intrinsic height ever
+        // exceeds 22pt at a different control size.
+        let heightCap = field.heightAnchor.constraint(lessThanOrEqualToConstant: 22)
+        heightCap.priority = .required
 
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: 22),
             field.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 6),
             field.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -6),
-            field.topAnchor.constraint(equalTo: topAnchor),
-            field.bottomAnchor.constraint(equalTo: bottomAnchor),
+            field.centerYAnchor.constraint(equalTo: centerYAnchor),
+            heightCap,
         ])
     }
 
@@ -317,18 +267,21 @@ final class RecorderPillBox: NSView {
         recorder.translatesAutoresizingMaskIntoConstraints = false
         addSubview(recorder)
 
-        // Match PillFieldBox: force the recorder to share the pill's exact
-        // height so the rounded ends of both pills line up on the same
-        // baseline instead of each one rendering at its own intrinsic size.
-        recorder.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
-        recorder.setContentHuggingPriority(.defaultLow, for: .vertical)
+        // Match PillFieldBox: center the recorder's intrinsic-height frame in
+        // the pill rather than stretching it. Stretching pushed the search
+        // field cell's text rect above center because the cell sizes its
+        // content layout from the top of its bounds. The lessThanOrEqual cap
+        // keeps the pill's rounded ends intact if intrinsic ever grows past
+        // 22pt.
+        let heightCap = recorder.heightAnchor.constraint(lessThanOrEqualToConstant: 22)
+        heightCap.priority = .required
 
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: 22),
             recorder.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 6),
             recorder.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -6),
-            recorder.topAnchor.constraint(equalTo: topAnchor),
-            recorder.bottomAnchor.constraint(equalTo: bottomAnchor),
+            recorder.centerYAnchor.constraint(equalTo: centerYAnchor),
+            heightCap,
         ])
     }
 
