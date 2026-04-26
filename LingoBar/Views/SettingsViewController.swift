@@ -94,6 +94,15 @@ final class SettingsViewController: NSViewController {
 
     private func makeTimeoutControl() -> NSView {
         timeoutField = NSTextField()
+        // The pill enforces a 22pt height by pinning the field's top/bottom,
+        // but NSTextFieldCell anchors its text to the top of the cell rect, so
+        // the digit lands above the pill's vertical center. Swap in a cell
+        // that re-centers the title rect at draw and edit time.
+        let cell = VerticallyCenteredTextFieldCell(textCell: "")
+        cell.isEditable = true
+        cell.isSelectable = true
+        cell.usesSingleLineMode = true
+        timeoutField.cell = cell
         timeoutField.alignment = .center
         timeoutField.controlSize = .small
         timeoutField.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
@@ -180,6 +189,49 @@ final class SettingsViewController: NSViewController {
 /// Flipped content view so NSScrollView lays out its document top-to-bottom.
 final class FlippedView: NSView {
     override var isFlipped: Bool { true }
+}
+
+/// `NSTextFieldCell` that vertically centers its title in the cell rect. The
+/// stock cell pins the title to the top of its bounds, which leaves the digit
+/// floating above center when the host pill stretches the field past its
+/// intrinsic height.
+final class VerticallyCenteredTextFieldCell: NSTextFieldCell {
+    override func titleRect(forBounds rect: NSRect) -> NSRect {
+        let base = super.titleRect(forBounds: rect)
+        let textHeight = attributedStringValue.size().height
+        let y = rect.origin.y + (rect.size.height - textHeight) / 2
+        return NSRect(x: base.origin.x, y: y, width: base.size.width, height: textHeight)
+    }
+
+    override func drawInterior(withFrame cellFrame: NSRect, in controlView: NSView) {
+        super.drawInterior(withFrame: titleRect(forBounds: cellFrame), in: controlView)
+    }
+
+    override func edit(withFrame rect: NSRect,
+                       in controlView: NSView,
+                       editor textObj: NSText,
+                       delegate: Any?,
+                       event: NSEvent?) {
+        super.edit(withFrame: titleRect(forBounds: rect),
+                   in: controlView,
+                   editor: textObj,
+                   delegate: delegate,
+                   event: event)
+    }
+
+    override func select(withFrame rect: NSRect,
+                         in controlView: NSView,
+                         editor textObj: NSText,
+                         delegate: Any?,
+                         start selStart: Int,
+                         length selLength: Int) {
+        super.select(withFrame: titleRect(forBounds: rect),
+                     in: controlView,
+                     editor: textObj,
+                     delegate: delegate,
+                     start: selStart,
+                     length: selLength)
+    }
 }
 
 /// Pill-shaped host for a plain `NSTextField`. Wraps the unbezeled field in
