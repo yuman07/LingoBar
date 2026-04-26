@@ -1,0 +1,143 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Semver version without leading v (e.g. 1.0.0 or 1.0.0-beta.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate version input
+        run: |
+          if [[ ! "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Invalid semver: '${{ inputs.version }}'. Expected '1.2.3' or '1.2.3-beta.1' (no v prefix)."
+            exit 1
+          fi
+
+  create-release:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="v${{ inputs.version }}"
+          prerelease=""
+          if [[ "$tag" =~ -(alpha|beta|rc) ]]; then prerelease="--prerelease"; fi
+          gh release create "$tag" \
+            --draft \
+            --target "$GITHUB_SHA" \
+            --title "LingoBar $tag" \
+            --notes "Pending release notes." \
+            $prerelease
+
+  build:
+    needs: create-release
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # SPEC §四: macOS-only, Apple Silicon, deployment target macOS 15.
+          # macos-15 runners are arm64, matching the build product architecture.
+          - arch: arm64
+            min_macos: '15'
+            runner: macos-15
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Show build environment
+        run: |
+          sw_vers
+          uname -m
+          xcodebuild -version
+
+      - name: Build LingoBar.app
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project LingoBar.xcodeproj \
+            -scheme LingoBar \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath build \
+            MARKETING_VERSION=${{ inputs.version }} \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            build
+
+      - name: Package as DMG
+        run: |
+          set -euo pipefail
+          app_name="LingoBar"
+          version="${{ inputs.version }}"
+          arch="${{ matrix.arch }}"
+          # Strip a trailing .0 from the macOS minimum so "15.0" → "15".
+          min_compact="${{ matrix.min_macos }}"
+          min_compact="${min_compact%.0}"
+          dmg_name="${app_name}_macOS${min_compact}_${arch}_${version}.dmg"
+
+          app_path="build/Build/Products/Release/${app_name}.app"
+          if [ ! -d "$app_path" ]; then
+            echo "::error::Built .app not found at $app_path"
+            exit 1
+          fi
+
+          staging=$(mktemp -d)
+          cp -R "$app_path" "$staging/"
+          ln -s /Applications "$staging/Applications"
+
+          hdiutil create \
+            -volname "$app_name" \
+            -srcfolder "$staging" \
+            -ov \
+            -format UDZO \
+            "$dmg_name"
+
+          ls -lh "$dmg_name"
+          echo "DMG_NAME=$dmg_name" >> "$GITHUB_ENV"
+
+      - name: Upload DMG to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="v${{ inputs.version }}"
+          gh release upload "$tag" "$DMG_NAME" --clobber
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="v${{ inputs.version }}"
+          gh release edit "$tag" --draft=false
