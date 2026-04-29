@@ -665,21 +665,13 @@ final class TranslationViewController: NSViewController {
         settings.sourceLanguage = oldTarget
         settings.targetLanguage = resolvedSource
 
-        // The swap is a display flip of an already-settled translation; we don't
-        // want the inputText write below to re-enter the debounced translate
-        // pipeline. The $inputText sink dispatches its trigger check onto the
-        // main queue, so we release the flag via a follow-up main-queue async.
-        appState.isReplayingContent = true
-        let oldInput = appState.inputText
-        appState.inputText = appState.outputText
-        appState.outputText = oldInput
-        // Flipped content isn't a continuation of the previous history session;
-        // if the user edits afterward, that edit should start a fresh row
-        // rather than mutating the pre-swap record.
+        // The swap starts a new conversation in the reverse direction, so
+        // don't fold the upcoming result into the previous history row.
         manager.endCurrentSession()
-        DispatchQueue.main.async { [weak self] in
-            self?.appState.isReplayingContent = false
-        }
+
+        // Move output → input so the $inputText sink picks up the change and
+        // kicks off a fresh translation through the debounce pipeline.
+        appState.inputText = appState.outputText
     }
 
     @objc private func openTranslationSettings() {
